@@ -38,6 +38,28 @@ export type GapAnalysisItem = {
   evidence?: string;
 };
 
+export type GapAnalysisSummary = {
+  totalDocuments: number;
+  readyDocuments: number;
+  missingDocuments: number;
+  reviewDocuments: number;
+  highSeverityBlockers: number;
+  canQualify: boolean;
+  qualificationMessage: string;
+  ownerBreakdown: Array<{
+    owner: string;
+    ready: number;
+    missing: number;
+    review: number;
+  }>;
+  blockers: Array<{
+    documentName: string;
+    owner: string;
+    severity: "Low" | "Medium" | "High";
+    recommendation: string;
+  }>;
+};
+
 export type AnalysisResult = {
   tender: TenderProfile;
   source: string;
@@ -45,6 +67,7 @@ export type AnalysisResult = {
   deadlineRisk: "Low" | "Medium" | "High";
   missingDocuments: TenderDocument[];
   gapAnalysis: GapAnalysisItem[];
+  gapSummary: GapAnalysisSummary;
   reviewItems: string[];
   persistedTenderId?: string;
 };

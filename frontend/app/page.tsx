@@ -38,6 +38,27 @@ type AnalysisResult = {
     recommendation: string;
     evidence?: string;
   }>;
+  gapSummary: {
+    totalDocuments: number;
+    readyDocuments: number;
+    missingDocuments: number;
+    reviewDocuments: number;
+    highSeverityBlockers: number;
+    canQualify: boolean;
+    qualificationMessage: string;
+    ownerBreakdown: Array<{
+      owner: string;
+      ready: number;
+      missing: number;
+      review: number;
+    }>;
+    blockers: Array<{
+      documentName: string;
+      owner: string;
+      severity: "Low" | "Medium" | "High";
+      recommendation: string;
+    }>;
+  };
   reviewItems: string[];
   persistedTenderId?: string;
 };
@@ -302,7 +323,50 @@ export default function Home() {
             <section className="panel">
               <div className="panel-title">
                 <h2>Gap analysis</h2>
-                <span>{analysis.missingDocuments.length} missing</span>
+                <span className={analysis.gapSummary.canQualify ? "status-ok" : "status-off"}>
+                  {analysis.gapSummary.canQualify ? "Can qualify" : "Blocked"}
+                </span>
+              </div>
+              <p className="muted">{analysis.gapSummary.qualificationMessage}</p>
+              <div className="gap-summary">
+                <article>
+                  <span>Ready</span>
+                  <strong>{analysis.gapSummary.readyDocuments}</strong>
+                </article>
+                <article>
+                  <span>Review</span>
+                  <strong>{analysis.gapSummary.reviewDocuments}</strong>
+                </article>
+                <article>
+                  <span>Missing</span>
+                  <strong>{analysis.gapSummary.missingDocuments}</strong>
+                </article>
+                <article>
+                  <span>High blockers</span>
+                  <strong>{analysis.gapSummary.highSeverityBlockers}</strong>
+                </article>
+              </div>
+              {analysis.gapSummary.blockers.length > 0 && (
+                <div className="blocker-list">
+                  <h3>Top blockers</h3>
+                  {analysis.gapSummary.blockers.slice(0, 4).map((item) => (
+                    <div className="blocker-item" key={`${item.documentName}-${item.owner}`}>
+                      <strong>{item.documentName}</strong>
+                      <span>{item.owner} / {item.severity}</span>
+                      <p>{item.recommendation}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="owner-grid">
+                {analysis.gapSummary.ownerBreakdown.map((owner) => (
+                  <article key={owner.owner}>
+                    <strong>{owner.owner}</strong>
+                    <span>{owner.ready} ready</span>
+                    <span>{owner.review} review</span>
+                    <span>{owner.missing} missing</span>
+                  </article>
+                ))}
               </div>
               <div className="gap-list">
                 {analysis.gapAnalysis.map((item) => (
