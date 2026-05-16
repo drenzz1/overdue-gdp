@@ -393,7 +393,7 @@ export default function Home() {
                 <button onClick={() => createDraft("technical")} type="button">Technical approach</button>
                 <button onClick={() => createDraft("team")} type="button">Team qualifications</button>
               </div>
-              <textarea value={draft} readOnly rows={12} placeholder="Choose a draft section." />
+              <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={12} placeholder="Choose a draft section." />
             </section>
           </>
         )}
