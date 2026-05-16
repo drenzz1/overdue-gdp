@@ -4,8 +4,24 @@
   "private": true,
   "description": "TenderPilot hackathon MVP prototype for tender analysis and bid drafting.",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "typescript": "latest"
+  },
+  "overrides": {
+    "postcss": "8.5.10"
   },
   "keywords": [
     "procurement",

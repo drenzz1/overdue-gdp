@@ -7,7 +7,6 @@
   --line: #dce1d9;
   --accent: #0d7c66;
   --accent-strong: #075f4f;
-  --warn: #b86a08;
   --danger: #b33a3a;
   --ok: #14854b;
   --blue: #2d5f8b;
@@ -105,6 +104,7 @@ button {
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -221,10 +221,9 @@ h3 {
   background: #e4f1eb;
 }
 
-.sidebar .secondary-action {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.18);
+.inline-action {
+  display: inline-flex;
+  align-items: center;
 }
 
 .metrics {
@@ -258,14 +257,6 @@ h3 {
   font-size: 30px;
 }
 
-.view {
-  display: none;
-}
-
-.view.active {
-  display: block;
-}
-
 .dropzone {
   min-height: 260px;
   display: grid;
@@ -276,6 +267,7 @@ h3 {
   margin-bottom: 18px;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .dropzone.dragging {
@@ -314,13 +306,9 @@ h3 {
   border-radius: 4px;
 }
 
-.doc-page span:nth-child(1) {
+.doc-page span:first-child {
   width: 70%;
   background: var(--accent);
-}
-
-.doc-page span:nth-child(3) {
-  width: 84%;
 }
 
 .scan-line {
@@ -367,8 +355,7 @@ h3 {
   margin-bottom: 16px;
 }
 
-.panel-heading span,
-#sourceBadge {
+.panel-heading span {
   border-radius: 999px;
   background: #edf1ea;
   color: var(--muted);
@@ -379,9 +366,14 @@ h3 {
 
 .snapshot {
   display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
-  row-gap: 12px;
+  gap: 12px;
   margin: 0;
+}
+
+.snapshot-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 10px;
 }
 
 .snapshot dt {
@@ -478,7 +470,7 @@ h3 {
   display: block;
 }
 
-.check-item span {
+.check-item span span {
   color: var(--muted);
   font-size: 13px;
   margin-top: 3px;
@@ -490,6 +482,7 @@ h3 {
   color: var(--muted);
   padding: 5px 8px;
   font-size: 12px;
+  font-style: normal;
   font-weight: 700;
 }
 
@@ -507,18 +500,19 @@ h3 {
   margin-top: 14px;
 }
 
-#draftEditor,
-#companyProfile {
+textarea {
   width: 100%;
 }
 
-#draftEditor {
+.draft-panel textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 16px;
   line-height: 1.55;
   resize: vertical;
   min-height: 430px;
+  color: var(--ink);
+  background: #ffffff;
 }
 
 @media (max-width: 960px) {
@@ -558,9 +552,9 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .snapshot {
+  .snapshot-row {
     grid-template-columns: 1fr;
-    row-gap: 4px;
+    gap: 4px;
   }
 
   .snapshot dd {
