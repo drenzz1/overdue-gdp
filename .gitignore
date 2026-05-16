@@ -1,8 +1,64 @@
-node_modules
-out
-dist
-.env
-.env.local
-.DS_Store
-npm-debug.log*
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+**/.next/
+
+# TypeScript
 *.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test and coverage output
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Runtime and upload artifacts
+tmp/
+temp/
+uploads/
+storage/
+*.pid
+*.seed
+
+# Package manager caches
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Deployment and framework caches
+.vercel/
+.netlify/
+.turbo/
+.parcel-cache/
+.eslintcache
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
