@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { persistAnalysisResult } from "../services/databaseService.js";
+import { defaultDocumentAnalysisProvider } from "../services/documentAnalysisService.js";
 import { analyzeTender, buildDraft, getSampleAnalysis } from "../services/tenderService.js";
 import type { DraftType, TenderProfile } from "../types.js";
 
@@ -38,16 +39,37 @@ export async function registerTenderRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "Missing tender file" });
     }
 
+    const isPdf =
+      file.mimetype === "application/pdf" ||
+      file.filename.toLowerCase().endsWith(".pdf");
+
+    if (!isPdf) {
+      await file.toBuffer();
+      return reply.code(400).send({ error: "Only PDF files are accepted" });
+    }
+
     const buffer = await file.toBuffer();
+
+    if (buffer.length > 20 * 1024 * 1024) {
+      return reply.code(400).send({ error: "File size exceeds the 20 MB limit" });
+    }
+
     const notesField = file.fields.notes;
     const notes =
       notesField && !Array.isArray(notesField) && notesField.type === "field"
         ? String(notesField.value)
         : undefined;
+
+    const analysisResult = await defaultDocumentAnalysisProvider.analyzeDocument(
+      buffer,
+      file.filename,
+      file.mimetype
+    );
+
     const input = {
       fileName: file.filename,
       fileSize: buffer.length,
-      documentText: buffer.toString("utf8"),
+      documentText: analysisResult.extractedText,
       ...(notes ? { notes } : {})
     };
 
