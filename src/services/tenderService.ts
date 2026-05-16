@@ -1,6 +1,6 @@
 import { sampleTender } from "../data/sampleTender.js";
 import { extractTenderRequirements } from "./extractionService.js";
-import { buildGapAnalysis, missingTenderDocuments } from "./gapAnalysisService.js";
+import { buildGapAnalysis, buildGapSummary, missingTenderDocuments } from "./gapAnalysisService.js";
 import type { AnalysisResult, AnalyzeTenderInput, DraftType, TenderDocument, TenderProfile } from "../types.js";
 
 function cloneTender(tender: TenderProfile): TenderProfile {
@@ -97,13 +97,16 @@ The team should attach CVs, role allocation, availability, and short proof point
 }
 
 function buildAnalysisResult(tender: TenderProfile, source: string, reviewItems: string[] = []): AnalysisResult {
+  const gapAnalysis = buildGapAnalysis(tender);
+
   return {
     tender,
     source,
     score: scoreTender(tender),
     deadlineRisk: deadlineRisk(tender.deadline),
     missingDocuments: missingDocuments(tender),
-    gapAnalysis: buildGapAnalysis(tender),
+    gapAnalysis,
+    gapSummary: buildGapSummary(gapAnalysis),
     reviewItems
   };
 }

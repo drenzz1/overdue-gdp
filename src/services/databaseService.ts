@@ -122,7 +122,8 @@ export async function persistAnalysisResult(analysis: AnalysisResult) {
           explanation: `Estimated tender score is ${analysis.score}/100.`,
           factors: {
             deadlineRisk: analysis.deadlineRisk,
-            missingDocuments: analysis.missingDocuments.length
+            missingDocuments: analysis.missingDocuments.length,
+            gapSummary: analysis.gapSummary
           }
         }
       }
