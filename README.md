@@ -1,6 +1,6 @@
 # TenderPilot
 
-TenderPilot is a Next.js hackathon MVP prototype for turning public tender documents into a bid workspace. It is based on the supplied `TenderPilot_HackathonIdea_GDG.pdf` brief.
+TenderPilot has a Node.js TypeScript backend and a separate Next.js frontend for turning public tender documents into a bid workspace. It is based on the supplied `TenderPilot_HackathonIdea_GDG.pdf` brief.
 
 ## Product Focus
 
@@ -14,9 +14,35 @@ TenderPilot is a Next.js hackathon MVP prototype for turning public tender docum
 
 ```bash
 npm install
+npm install --prefix frontend
 npm run dev
 ```
 
-Then open `http://localhost:3000`.
+Backend runs at `http://127.0.0.1:3000`.
 
-PDF parsing is represented by a deterministic `/api/analyze` route suitable for demo purposes. It derives a tender workspace from the uploaded file metadata and profile notes, ready to swap for a real document AI pipeline.
+In another terminal, run:
+
+```bash
+npm run dev:frontend
+```
+
+Frontend runs at `http://localhost:3001`.
+
+## API
+
+- `GET /health`
+- `GET /api/tenders/sample`
+- `POST /api/tenders/analyze`
+- `POST /api/tenders/analyze-file`
+- `POST /api/bids/draft`
+
+PDF parsing is represented by deterministic backend services suitable for demo purposes. The upload route derives a tender workspace from file metadata and profile notes, ready to swap for a real document AI pipeline.
+
+## Build
+
+```bash
+npm run typecheck
+npm run build
+npm run build:frontend
+npm start
+```
