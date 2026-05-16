@@ -97,6 +97,8 @@ export default function Home() {
   const [databaseLoading, setDatabaseLoading] = useState(true);
   const [databaseStatus, setDatabaseStatus] = useState<DatabaseStatus | null>(null);
   const [databaseTenders, setDatabaseTenders] = useState<TenderDashboardItem[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const tender = analysis?.tender;
 
   const readyCount = useMemo(
@@ -171,6 +173,32 @@ export default function Home() {
     }
   }
 
+  async function analyzeUploadedPdf() {
+    if (!selectedFile) return;
+    setUploadError(null);
+    setLoading(true);
+    try {
+      const form = new FormData();
+      form.append("file", selectedFile);
+      form.append("notes", companyProfile);
+      const response = await fetch(`${apiBase}/api/tenders/analyze-file`, {
+        method: "POST",
+        body: form
+      });
+      if (!response.ok) {
+        const err = (await response.json()) as { error?: string };
+        setUploadError(err.error ?? "Upload failed");
+        return;
+      }
+      const data = (await response.json()) as AnalysisResult;
+      setAnalysis(data);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function createDraft(type: "summary" | "technical" | "team") {
     if (!tender) return;
 
@@ -202,6 +230,23 @@ export default function Home() {
           Company profile
           <textarea value={companyProfile} onChange={(event) => setCompanyProfile(event.target.value)} rows={9} />
         </label>
+
+        <label>
+          Upload tender PDF
+          <input
+            accept="application/pdf"
+            onChange={(event) => {
+              setSelectedFile(event.target.files?.[0] ?? null);
+              setUploadError(null);
+            }}
+            type="file"
+          />
+        </label>
+        {selectedFile && <small>{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</small>}
+        {uploadError && <small className="upload-error">{uploadError}</small>}
+        <button disabled={!selectedFile || loading} onClick={analyzeUploadedPdf} type="button">
+          Analyze PDF
+        </button>
 
         <button onClick={loadSample} type="button">Load sample</button>
         <button onClick={analyzeExample} type="button">Analyze demo tender</button>

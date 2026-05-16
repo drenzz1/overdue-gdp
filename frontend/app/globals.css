@@ -106,6 +106,19 @@ label textarea {
   color: #ffffff;
 }
 
+label input[type="file"] {
+  margin-top: 8px;
+  display: block;
+  width: 100%;
+  color: #c3d1cc;
+  font-size: 13px;
+}
+
+.upload-error {
+  color: #f29090;
+  font-size: 12px;
+}
+
 .workspace {
   padding: 28px;
 }
