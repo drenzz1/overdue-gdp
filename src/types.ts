@@ -26,6 +26,13 @@ export type TenderProfile = {
 
 export type DraftType = "summary" | "technical" | "team";
 
+export type ScoreFactor = {
+  label: string;
+  weight: number;
+  earned: number;
+  reason: string;
+};
+
 export type GapStatus = "ready" | "missing" | "review";
 
 export type GapAnalysisItem = {
@@ -64,6 +71,8 @@ export type AnalysisResult = {
   tender: TenderProfile;
   source: string;
   score: number;
+  scoreBreakdown: ScoreFactor[];
+  scoreExplanation: string;
   deadlineRisk: "Low" | "Medium" | "High";
   missingDocuments: TenderDocument[];
   gapAnalysis: GapAnalysisItem[];

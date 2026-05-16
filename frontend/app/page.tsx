@@ -23,10 +23,19 @@ type TenderProfile = {
   documents: TenderDocument[];
 };
 
+type ScoreFactor = {
+  label: string;
+  weight: number;
+  earned: number;
+  reason: string;
+};
+
 type AnalysisResult = {
   tender: TenderProfile;
   source: string;
   score: number;
+  scoreBreakdown: ScoreFactor[];
+  scoreExplanation: string;
   deadlineRisk: "Low" | "Medium" | "High";
   missingDocuments: TenderDocument[];
   gapAnalysis: Array<{
@@ -261,6 +270,30 @@ export default function Home() {
               <article><span>Risk</span><strong>{analysis.deadlineRisk}</strong></article>
               <article><span>Ready docs</span><strong>{readyCount}</strong></article>
               <article><span>Missing</span><strong>{analysis.missingDocuments.length}</strong></article>
+            </section>
+
+            <section className="panel">
+              <div className="panel-title">
+                <h2>Score breakdown</h2>
+                <span>{analysis.score}/100</span>
+              </div>
+              <p className="muted">{analysis.scoreExplanation}</p>
+              <div className="score-breakdown">
+                {analysis.scoreBreakdown.map((factor) => (
+                  <article className="score-factor" key={factor.label}>
+                    <div className="score-factor-header">
+                      <strong>{factor.label}</strong>
+                      <span className={factor.earned >= Math.round(factor.weight * 0.8) ? "ready" : factor.earned < Math.round(factor.weight * 0.5) ? "missing" : "review"}>
+                        {factor.earned}/{factor.weight}
+                      </span>
+                    </div>
+                    <div className="score-bar">
+                      <div className="score-bar-fill" style={{ width: `${(factor.earned / factor.weight) * 100}%` }} />
+                    </div>
+                    <small>{factor.reason}</small>
+                  </article>
+                ))}
+              </div>
             </section>
 
             <section className="grid">

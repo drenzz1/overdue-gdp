@@ -1,6 +1,7 @@
 import { sampleTender } from "../data/sampleTender.js";
 import { extractTenderRequirements } from "./extractionService.js";
 import { buildGapAnalysis, buildGapSummary, missingTenderDocuments } from "./gapAnalysisService.js";
+import { buildScoreExplanation, buildScoreFactors, computeScore } from "./scoringService.js";
 import type { AnalysisResult, AnalyzeTenderInput, DraftType, TenderDocument, TenderProfile } from "../types.js";
 
 function cloneTender(tender: TenderProfile): TenderProfile {
@@ -36,12 +37,8 @@ export function analyzeTender(input: AnalyzeTenderInput): AnalysisResult {
   return buildAnalysisResult(extraction.tender, formatSource(input.fileName, input.fileSize), extraction.reviewItems);
 }
 
-export function scoreTender(tender: TenderProfile) {
-  const ready = tender.documents.filter((document) => document.ready).length;
-  const total = tender.documents.length || 1;
-  const complianceScore = Math.round((ready / total) * 45);
-  const experienceBoost = tender.criteria.some((item) => item.toLowerCase().includes("reference")) ? 7 : 4;
-  return Math.min(96, 38 + complianceScore + experienceBoost);
+export function scoreTender(tender: TenderProfile): number {
+  return computeScore(buildScoreFactors(tender));
 }
 
 export function deadlineRisk(deadline: string): AnalysisResult["deadlineRisk"] {
@@ -98,11 +95,15 @@ The team should attach CVs, role allocation, availability, and short proof point
 
 function buildAnalysisResult(tender: TenderProfile, source: string, reviewItems: string[] = []): AnalysisResult {
   const gapAnalysis = buildGapAnalysis(tender);
+  const scoreBreakdown = buildScoreFactors(tender);
+  const score = computeScore(scoreBreakdown);
 
   return {
     tender,
     source,
-    score: scoreTender(tender),
+    score,
+    scoreBreakdown,
+    scoreExplanation: buildScoreExplanation(score, scoreBreakdown),
     deadlineRisk: deadlineRisk(tender.deadline),
     missingDocuments: missingDocuments(tender),
     gapAnalysis,
