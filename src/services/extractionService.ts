@@ -1,5 +1,5 @@
 import { sampleTender } from "../data/sampleTender.js";
-import { extractJsonFromResponse, geminiFlash, hasGemini } from "./geminiService.js";
+import { extractJsonFromResponse, generateJson, hasGemini } from "./geminiService.js";
 import type { AnalyzeTenderInput, CompanyProfile, SimplifiedSummary, TenderDocument, TenderProfile, TenderWeight } from "../types.js";
 
 export type ExtractionOutput = {
@@ -67,8 +67,7 @@ Rules:
 - topRisks: 3–4 items (missing docs, tight deadline, capability gaps)
 - Do NOT include null values — omit optional fields instead`;
 
-  const result = await geminiFlash.generateContent(prompt);
-  const raw = extractJsonFromResponse(result.response.text());
+  const raw = extractJsonFromResponse(await generateJson(prompt));
 
   const parsed = JSON.parse(raw) as {
     title?: string;

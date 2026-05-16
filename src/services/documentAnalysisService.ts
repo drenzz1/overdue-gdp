@@ -1,5 +1,5 @@
 import mammoth from "mammoth";
-import { geminiFlashText, hasGemini } from "./geminiService.js";
+import { generateTextFromPdf, hasGemini } from "./geminiService.js";
 
 export type DocumentAnalysisResult = {
   extractedText: string;
@@ -41,18 +41,13 @@ class GeminiDocumentAnalysisProvider implements DocumentAnalysisProvider {
     }
 
     // PDF — send inline to Gemini for text extraction
-    const result = await geminiFlashText.generateContent([
-      {
-        inlineData: {
-          data: buffer.toString("base64"),
-          mimeType: "application/pdf"
-        }
-      },
+    const text = await generateTextFromPdf(
+      buffer.toString("base64"),
       "Extract all text from this tender document. Return only the raw extracted text, preserving structure with newlines. Do not summarize or interpret — just extract."
-    ]);
+    );
 
     return {
-      extractedText: result.response.text(),
+      extractedText: text,
       metadata: { provider: "gemini-pdf" }
     };
   }

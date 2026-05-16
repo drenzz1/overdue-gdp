@@ -1,7 +1,7 @@
 import { sampleTender } from "../data/sampleTender.js";
 import { retrieveContext } from "./companyProfileService.js";
 import { extractTenderRequirements } from "./extractionService.js";
-import { geminiFlashText, hasGemini } from "./geminiService.js";
+import { generateText, hasGemini } from "./geminiService.js";
 import { buildGapAnalysis, buildGapSummary, missingTenderDocuments } from "./gapAnalysisService.js";
 import { buildScoreExplanation, buildScoreFactors, computeScore } from "./scoringService.js";
 import type { AnalysisResult, AnalyzeTenderInput, CompanyProfile, DraftType, TenderDocument, TenderProfile } from "../types.js";
@@ -124,8 +124,7 @@ Documents still missing: ${missing}
 
 Write professional, specific prose. Do not use placeholder text or generic statements. Be concrete about what this company will deliver.`;
 
-  const result = await geminiFlashText.generateContent(prompt);
-  return result.response.text().trim();
+  return generateText(prompt);
 }
 
 function buildDraftTemplate(type: DraftType, tender: TenderProfile, profile?: CompanyProfile): string {

@@ -1,5 +1,5 @@
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
-import { geminiFlashText } from "./geminiService.js";
+import { generateText } from "./geminiService.js";
 import type { CompanyProfile, GeneratedDocument, TenderProfile } from "../types.js";
 
 const store = new Map<string, { doc: GeneratedDocument; docxBuffer: Buffer }>();
@@ -33,8 +33,8 @@ Instructions:
 - Make it specific to this company and tender — not generic
 - Length: appropriate for the document type (certificates 100–200 words, methodologies 500–800 words, CVs 300–400 words)`;
 
-  const result = await geminiFlashText.generateContent(prompt);
-  const content = result.response.text().trim();
+  const content = await generateText(prompt);
+  
 
   const id = `gendoc-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const docxBuffer = await assembleDocx(documentName, content);
