@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { persistAnalysisResult } from "../services/databaseService.js";
 import { analyzeTender, buildDraft, getSampleAnalysis } from "../services/tenderService.js";
 import type { DraftType, TenderProfile } from "../types.js";
 
@@ -12,8 +13,23 @@ export async function registerTenderRoutes(app: FastifyInstance) {
       fileName?: string;
       fileSize?: number;
       notes?: string;
+      documentText?: string;
+      availableDocuments?: string[];
+      persist?: boolean;
     };
-  }>("/api/tenders/analyze", async (request) => analyzeTender(request.body ?? {}));
+  }>("/api/tenders/analyze", async (request) => {
+    const analysis = analyzeTender(request.body ?? {});
+
+    if (request.body?.persist) {
+      const persistedTenderId = await persistAnalysisResult(analysis);
+      return {
+        ...analysis,
+        ...(persistedTenderId ? { persistedTenderId } : {})
+      };
+    }
+
+    return analysis;
+  });
 
   app.post("/api/tenders/analyze-file", async (request, reply) => {
     const file = await request.file();
@@ -31,6 +47,7 @@ export async function registerTenderRoutes(app: FastifyInstance) {
     const input = {
       fileName: file.filename,
       fileSize: buffer.length,
+      documentText: buffer.toString("utf8"),
       ...(notes ? { notes } : {})
     };
 

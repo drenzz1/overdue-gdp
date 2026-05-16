@@ -37,6 +37,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -141,6 +146,54 @@ h2 {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
+.muted {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.status-ok {
+  color: var(--ok) !important;
+  background: #e6f4ed !important;
+}
+
+.status-off {
+  color: var(--danger) !important;
+  background: #f9e9e9 !important;
+}
+
+.db-list {
+  display: grid;
+  gap: 10px;
+}
+
+.db-empty,
+.db-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.db-empty {
+  color: var(--muted);
+}
+
+.db-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.db-item strong,
+.db-item span {
+  display: block;
+}
+
+.db-item div span {
+  color: var(--muted);
+  margin-top: 3px;
+}
+
 .metrics article,
 .panel {
   background: var(--surface);
@@ -202,12 +255,14 @@ ul {
   line-height: 1.55;
 }
 
-.checklist {
+.checklist,
+.gap-list {
   display: grid;
   gap: 10px;
 }
 
-.check-item {
+.check-item,
+.gap-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 120px auto;
   gap: 12px;
@@ -222,9 +277,53 @@ ul {
   background: #e6f4ed;
 }
 
-.check-item .missing {
+.check-item .missing,
+.gap-item .missing {
   color: var(--danger);
   background: #f9e9e9;
+}
+
+.gap-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.gap-item div span,
+.gap-item p,
+.gap-item small {
+  color: var(--muted);
+}
+
+.gap-item strong,
+.gap-item span,
+.gap-item p,
+.gap-item small {
+  display: block;
+}
+
+.gap-item p,
+.gap-item small {
+  grid-column: 1 / -1;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.gap-item em {
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.gap-item .ready {
+  color: var(--ok);
+  background: #e6f4ed;
+}
+
+.gap-item .review {
+  color: #9a6400;
+  background: #fff3cf;
 }
 
 .actions {

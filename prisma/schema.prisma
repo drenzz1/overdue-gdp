@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenderStatus {
+  UPLOADED
+  ANALYZING
+  ANALYZED
+  DRAFTING
+  SUBMITTED
+  ARCHIVED
+}
+
+enum RequirementType {
+  ELIGIBILITY
+  TECHNICAL
+  FINANCIAL
+  LEGAL
+  DEADLINE
+  SCORING
+}
+
+enum DocumentStatus {
+  READY
+  MISSING
+  REVIEW
+}
+
+enum GapSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum DraftType {
+  SUMMARY
+  TECHNICAL
+  TEAM
+}
+
+model Company {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  region      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  documents CompanyDocument[]
+  tenders   Tender[]
+
+  @@map("companies")
+}
+
+model CompanyDocument {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId String   @db.Uuid
+  title     String
+  kind      String
+  fileUrl   String?
+  content   String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  chunks  CompanyDocumentChunk[]
+
+  @@index([companyId])
+  @@map("company_documents")
+}
+
+model CompanyDocumentChunk {
+  id                String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyDocumentId String                    @db.Uuid
+  content           String
+  tokenCount        Int?
+  metadata          Json?
+  embedding         Unsupported("vector(1536)")?
+  createdAt         DateTime                  @default(now())
+
+  companyDocument CompanyDocument @relation(fields: [companyDocumentId], references: [id], onDelete: Cascade)
+
+  @@index([companyDocumentId])
+  @@map("company_document_chunks")
+}
+
+model Tender {
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId          String?      @db.Uuid
+  title              String
+  buyer              String
+  region             String?
+  deadline           DateTime?
+  value              String?
+  language           String?
+  channel            String?
+  sourceFileName     String?
+  sourceFileUrl      String?
+  sourceFileSize     Int?
+  extractionReview   String[]     @default([])
+  status             TenderStatus @default(UPLOADED)
+  rawExtraction      Json?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  company      Company?              @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  requirements TenderRequirement[]
+  documents    TenderRequiredDocument[]
+  weights      TenderScoringWeight[]
+  gaps         TenderGapItem[]
+  drafts       BidDraft[]
+  scores       BidScore[]
+
+  @@index([companyId])
+  @@index([status])
+  @@index([deadline])
+  @@map("tenders")
+}
+
+model TenderRequirement {
+  id        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenderId  String          @db.Uuid
+  type      RequirementType
+  text      String
+  source    String?
+  confidence Float?
+  metadata  Json?
+  createdAt DateTime        @default(now())
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@index([type])
+  @@map("tender_requirements")
+}
+
+model TenderRequiredDocument {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenderId     String         @db.Uuid
+  name         String
+  owner        String
+  status       DocumentStatus @default(REVIEW)
+  evidence     String?
+  reviewReason String?
+  metadata     Json?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@index([status])
+  @@map("tender_required_documents")
+}
+
+model TenderScoringWeight {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenderId  String   @db.Uuid
+  label     String
+  points    Int
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@map("tender_scoring_weights")
+}
+
+model TenderGapItem {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenderId       String      @db.Uuid
+  documentName   String
+  owner          String
+  status         DocumentStatus
+  severity       GapSeverity
+  reason         String
+  recommendation String
+  evidence       String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@index([status])
+  @@index([severity])
+  @@map("tender_gap_items")
+}
+
+model BidDraft {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenderId       String    @db.Uuid
+  type           DraftType
+  content        String
+  model          String?
+  promptMetadata Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@index([type])
+  @@map("bid_drafts")
+}
+
+model BidScore {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenderId    String   @db.Uuid
+  total       Int
+  explanation String?
+  factors     Json?
+  createdAt   DateTime @default(now())
+
+  tender Tender @relation(fields: [tenderId], references: [id], onDelete: Cascade)
+
+  @@index([tenderId])
+  @@map("bid_scores")
+}
