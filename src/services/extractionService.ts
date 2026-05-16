@@ -60,7 +60,13 @@ Return ONLY valid JSON matching this exact schema (no markdown, no explanation):
 
 Rules:
 - weights must sum to 100; if you cannot determine them, use: [{"label":"Technical","value":35},{"label":"Experience","value":25},{"label":"Team","value":20},{"label":"Price","value":15},{"label":"Support","value":5}]
-- For documents: set ready=true only if the company profile clearly has evidence for it
+- For documents: set ready=true ONLY if the company profile has directly relevant evidence matching both the document type AND the tender's specific domain. Be strict:
+  * References for a legal/justice tender require legal or judicial project experience — IT or software references do NOT qualify
+  * References for a construction tender require construction/civil works experience — IT references do NOT qualify
+  * CVs must match the required role domain — a software engineer CV does not satisfy a requirement for a lawyer, judge, or civil engineer
+  * Methodology documents must be domain-relevant — an IT delivery methodology does not satisfy a legal services or construction methodology requirement
+  * Only generic administrative documents (business registration, tax compliance, financial statements) can be marked ready regardless of domain
+  * If the tender domain (legal, medical, construction, education, etc.) does not match the company's domain, most specialist documents should be ready=false with a clear reviewReason explaining the domain mismatch
 - Include 5–10 documents based on what the tender explicitly requires
 - whatYouNeedToWin: 4–6 bullets, plain language, actionable
 - winningFactors: 3–4 items (highest-weighted criteria)
