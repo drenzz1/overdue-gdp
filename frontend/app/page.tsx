@@ -1,6 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import StepAnalysis from "./components/StepAnalysis";
+import StepDocuments from "./components/StepDocuments";
+import StepProfile from "./components/StepProfile";
+import StepUpload from "./components/StepUpload";
+
+type CompanyDocument = {
+  id: string;
+  name: string;
+  category: "certification" | "reference" | "cv" | "capability" | "legal";
+  description: string;
+  tags: string[];
+};
+
+type CompanyProfile = {
+  name: string;
+  description: string;
+  capabilities: string[];
+  documents: CompanyDocument[];
+};
 
 type TenderDocument = {
   name: string;
@@ -10,28 +29,21 @@ type TenderDocument = {
   reviewReason?: string;
 };
 
-type TenderProfile = {
-  title: string;
-  buyer: string;
-  region: string;
-  deadline: string;
-  value: string;
-  language: string;
-  channel: string;
-  criteria: string[];
-  weights: Array<{ label: string; value: number }>;
-  documents: TenderDocument[];
-};
-
-type ScoreFactor = {
-  label: string;
-  weight: number;
-  earned: number;
-  reason: string;
-};
+type ScoreFactor = { label: string; weight: number; earned: number; reason: string };
 
 type AnalysisResult = {
-  tender: TenderProfile;
+  tender: {
+    title: string;
+    buyer: string;
+    region: string;
+    deadline: string;
+    value: string;
+    language: string;
+    channel: string;
+    criteria: string[];
+    weights: Array<{ label: string; value: number }>;
+    documents: TenderDocument[];
+  };
   source: string;
   score: number;
   scoreBreakdown: ScoreFactor[];
@@ -55,173 +67,58 @@ type AnalysisResult = {
     highSeverityBlockers: number;
     canQualify: boolean;
     qualificationMessage: string;
-    ownerBreakdown: Array<{
-      owner: string;
-      ready: number;
-      missing: number;
-      review: number;
-    }>;
-    blockers: Array<{
-      documentName: string;
-      owner: string;
-      severity: "Low" | "Medium" | "High";
-      recommendation: string;
-    }>;
+    ownerBreakdown: Array<{ owner: string; ready: number; missing: number; review: number }>;
+    blockers: Array<{ documentName: string; owner: string; severity: "Low" | "Medium" | "High"; recommendation: string }>;
   };
   reviewItems: string[];
-  persistedTenderId?: string;
-};
-
-type DatabaseStatus = {
-  configured: boolean;
-  connected: boolean;
-  message: string;
-};
-
-type TenderDashboardItem = {
-  id: string;
-  title: string;
-  buyer: string;
-  status: string;
-  deadline: string | null;
-  score: number | null;
-  missingDocuments: number;
-  createdAt: string;
-};
-
-type DatabaseTendersResponse = {
-  status: DatabaseStatus;
-  tenders: TenderDashboardItem[];
+  simplifiedSummary?: {
+    whatYouNeedToWin: string[];
+    winningFactors: string[];
+    topRisks: string[];
+  };
 };
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3000";
 
-export default function Home() {
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [companyProfile, setCompanyProfile] = useState(
-    "Prishtina-based software company with 18 engineers, public sector integrations, cloud delivery, and Albanian/English documentation capacity."
-  );
-  const [draft, setDraft] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [databaseLoading, setDatabaseLoading] = useState(true);
-  const [databaseStatus, setDatabaseStatus] = useState<DatabaseStatus | null>(null);
-  const [databaseTenders, setDatabaseTenders] = useState<TenderDashboardItem[]>([]);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const tender = analysis?.tender;
+type Step = 1 | 2 | 3 | 4;
 
-  const readyCount = useMemo(
-    () => tender?.documents.filter((document) => document.ready).length ?? 0,
-    [tender]
-  );
+const STEP_LABELS: Record<Step, string> = {
+  1: "Company Profile",
+  2: "Upload Tender",
+  3: "Analysis",
+  4: "Prepare Documents"
+};
+
+export default function Home() {
+  const [step, setStep] = useState<Step>(1);
+  const [profile, setProfile] = useState<CompanyProfile | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
-    void loadSample();
-    void loadDatabaseTenders();
+    void (async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/company/profile`);
+        const data = (await res.json()) as CompanyProfile;
+        setProfile(data);
+      } catch {
+        // backend not ready yet
+      } finally {
+        setProfileLoading(false);
+      }
+    })();
   }, []);
 
-  async function loadSample() {
-    setLoading(true);
-    const response = await fetch(`${apiBase}/api/tenders/sample`);
-    const data = (await response.json()) as AnalysisResult;
-    setAnalysis(data);
-    setLoading(false);
+  function goTo(target: Step) {
+    if (target < step) setStep(target);
+    else if (target === 2 && step >= 1) setStep(2);
+    else if (target === 3 && analysis) setStep(3);
+    else if (target === 4 && analysis) setStep(4);
   }
 
-  async function analyzeExample() {
-    setLoading(true);
-    const response = await fetch(`${apiBase}/api/tenders/analyze`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        fileName: "municipality-digital-platform.pdf",
-        fileSize: 80400,
-        notes: companyProfile,
-        documentText:
-          "Municipality digital platform tender. Deadline 2026-06-03 14:00. Required documents: company registration, tax compliance, references, project manager CV, methodology, financial offer. Scoring: technical methodology 35 points, relevant experience 25 points, team qualifications 20 points, price 15 points, support plan 5 points.",
-        availableDocuments: ["Business registration certificate", "Project manager CV", "Implementation methodology"],
-        persist: databaseStatus?.connected ?? false
-      })
-    });
-    const data = (await response.json()) as AnalysisResult;
-    setAnalysis(data);
-    if (data.persistedTenderId) {
-      await loadDatabaseTenders();
-    }
-    setLoading(false);
-  }
-
-  async function loadDatabaseTenders() {
-    setDatabaseLoading(true);
-    try {
-      const response = await fetch(`${apiBase}/api/database/tenders`);
-      const data = (await response.json()) as DatabaseTendersResponse;
-      setDatabaseStatus(data.status);
-      setDatabaseTenders(data.tenders);
-    } catch (error) {
-      setDatabaseStatus({
-        configured: false,
-        connected: false,
-        message: error instanceof Error ? error.message : "Unable to reach backend database endpoint."
-      });
-      setDatabaseTenders([]);
-    } finally {
-      setDatabaseLoading(false);
-    }
-  }
-
-  async function seedDatabaseDemo() {
-    setDatabaseLoading(true);
-    try {
-      await fetch(`${apiBase}/api/database/seed-demo`, {
-        method: "POST"
-      });
-      await loadDatabaseTenders();
-    } finally {
-      setDatabaseLoading(false);
-    }
-  }
-
-  async function analyzeUploadedPdf() {
-    if (!selectedFile) return;
-    setUploadError(null);
-    setLoading(true);
-    try {
-      const form = new FormData();
-      form.append("file", selectedFile);
-      form.append("notes", companyProfile);
-      const response = await fetch(`${apiBase}/api/tenders/analyze-file`, {
-        method: "POST",
-        body: form
-      });
-      if (!response.ok) {
-        const err = (await response.json()) as { error?: string };
-        setUploadError(err.error ?? "Upload failed");
-        return;
-      }
-      const data = (await response.json()) as AnalysisResult;
-      setAnalysis(data);
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Upload failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function createDraft(type: "summary" | "technical" | "team") {
-    if (!tender) return;
-
-    const response = await fetch(`${apiBase}/api/bids/draft`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        type,
-        tender,
-        companyProfile
-      })
-    });
-    const data = (await response.json()) as { draft: string };
-    setDraft(data.draft);
+  function handleAnalyzed(result: unknown) {
+    setAnalysis(result as AnalysisResult);
+    setStep(3);
   }
 
   return (
@@ -231,248 +128,79 @@ export default function Home() {
           <span>TP</span>
           <div>
             <strong>TenderPilot</strong>
-            <small>Next.js frontend</small>
+            <small>Tender analysis workspace</small>
           </div>
         </div>
-
-        <label>
-          Company profile
-          <textarea value={companyProfile} onChange={(event) => setCompanyProfile(event.target.value)} rows={9} />
-        </label>
-
-        <label>
-          Upload tender PDF
-          <input
-            accept="application/pdf"
-            onChange={(event) => {
-              setSelectedFile(event.target.files?.[0] ?? null);
-              setUploadError(null);
-            }}
-            type="file"
-          />
-        </label>
-        {selectedFile && <small>{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</small>}
-        {uploadError && <small className="upload-error">{uploadError}</small>}
-        <button disabled={!selectedFile || loading} onClick={analyzeUploadedPdf} type="button">
-          Analyze PDF
-        </button>
-
-        <button onClick={loadSample} type="button">Load sample</button>
-        <button onClick={analyzeExample} type="button">Analyze demo tender</button>
-        <button onClick={loadDatabaseTenders} type="button">Refresh DB data</button>
+        <nav className="wizard-nav">
+          {([1, 2, 3, 4] as Step[]).map((s) => {
+            const isDone = s < step;
+            const isActive = s === step;
+            const isAccessible = s < step || s === step || (s === 2) || (s === 3 && !!analysis) || (s === 4 && !!analysis);
+            return (
+              <button
+                key={s}
+                className={`wizard-step ${isActive ? "active" : isDone ? "done" : "locked"}`}
+                disabled={!isAccessible}
+                onClick={() => isAccessible && goTo(s)}
+                type="button"
+              >
+                <span className="step-num">{isDone ? "✓" : s}</span>
+                {STEP_LABELS[s]}
+              </button>
+            );
+          })}
+        </nav>
+        {profile && (
+          <div className="sidebar-profile">
+            <strong>{profile.name}</strong>
+            <small className="muted">{profile.documents.length} docs · {profile.capabilities.length} capabilities</small>
+          </div>
+        )}
       </aside>
 
       <section className="workspace">
-        <header>
+        <header className="workspace-header">
           <p>Kosovo and Balkan public procurement</p>
-          <h1>Compliant tender analysis, powered by the Node API.</h1>
+          <h1>Compliant tender analysis, powered by AI.</h1>
         </header>
 
-        {loading && <div className="panel">Loading backend data...</div>}
-
-        {analysis && tender && (
+        {profileLoading ? (
+          <div className="panel"><p className="muted">Loading profile…</p></div>
+        ) : (
           <>
-            <section className="panel">
-              <div className="panel-title">
-                <h2>Database</h2>
-                <span className={databaseStatus?.connected ? "status-ok" : "status-off"}>
-                  {databaseStatus?.connected ? "Connected" : "Not connected"}
-                </span>
-              </div>
-              <p className="muted">
-                {databaseLoading ? "Checking database..." : databaseStatus?.message ?? "Database status unavailable."}
-              </p>
-              <div className="actions">
-                <button onClick={loadDatabaseTenders} type="button">Reload tenders</button>
-                <button disabled={!databaseStatus?.connected} onClick={seedDatabaseDemo} type="button">
-                  Seed demo tender
-                </button>
-              </div>
-              <div className="db-list">
-                {databaseTenders.length === 0 && (
-                  <div className="db-empty">
-                    {databaseStatus?.connected
-                      ? "No persisted tenders yet. Seed demo data or analyze a tender."
-                      : "Configure DATABASE_URL and run migrations to show persisted tender data here."}
-                  </div>
-                )}
-                {databaseTenders.map((item) => (
-                  <article className="db-item" key={item.id}>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <span>{item.buyer}</span>
-                    </div>
-                    <span>{item.status}</span>
-                    <span>{item.score ?? "No score"}</span>
-                    <span>{item.missingDocuments} missing</span>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="metrics">
-              <article><span>Score</span><strong>{analysis.score}</strong></article>
-              <article><span>Risk</span><strong>{analysis.deadlineRisk}</strong></article>
-              <article><span>Ready docs</span><strong>{readyCount}</strong></article>
-              <article><span>Missing</span><strong>{analysis.missingDocuments.length}</strong></article>
-            </section>
-
-            <section className="panel">
-              <div className="panel-title">
-                <h2>Score breakdown</h2>
-                <span>{analysis.score}/100</span>
-              </div>
-              <p className="muted">{analysis.scoreExplanation}</p>
-              <div className="score-breakdown">
-                {analysis.scoreBreakdown.map((factor) => (
-                  <article className="score-factor" key={factor.label}>
-                    <div className="score-factor-header">
-                      <strong>{factor.label}</strong>
-                      <span className={factor.earned >= Math.round(factor.weight * 0.8) ? "ready" : factor.earned < Math.round(factor.weight * 0.5) ? "missing" : "review"}>
-                        {factor.earned}/{factor.weight}
-                      </span>
-                    </div>
-                    <div className="score-bar">
-                      <div className="score-bar-fill" style={{ width: `${(factor.earned / factor.weight) * 100}%` }} />
-                    </div>
-                    <small>{factor.reason}</small>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="grid">
-              <article className="panel">
-                <div className="panel-title">
-                  <h2>{tender.title}</h2>
-                  <span>{analysis.source}</span>
-                </div>
-                <dl>
-                  <dt>Buyer</dt><dd>{tender.buyer}</dd>
-                  <dt>Deadline</dt><dd>{tender.deadline}</dd>
-                  <dt>Budget</dt><dd>{tender.value}</dd>
-                  <dt>Submission</dt><dd>{tender.channel}</dd>
-                </dl>
-              </article>
-
-              <article className="panel">
-                <div className="panel-title">
-                  <h2>Eligibility</h2>
-                  <span>{analysis.missingDocuments.length ? "Needs review" : "Ready"}</span>
-                </div>
-                <ul>
-                  {tender.criteria.map((criterion) => (
-                    <li key={criterion}>{criterion}</li>
-                  ))}
-                </ul>
-              </article>
-            </section>
-
-            {analysis.reviewItems.length > 0 && (
-              <section className="panel">
-                <div className="panel-title">
-                  <h2>Extraction review</h2>
-                  <span>{analysis.reviewItems.length} items</span>
-                </div>
-                <ul>
-                  {analysis.reviewItems.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </section>
+            {step === 1 && (
+              <StepProfile
+                profile={profile}
+                apiBase={apiBase}
+                onSaved={(updated) => {
+                  setProfile(updated);
+                  setStep(2);
+                }}
+              />
             )}
 
-            <section className="panel">
-              <div className="panel-title">
-                <h2>Compliance checklist</h2>
-                <span>{readyCount} complete</span>
-              </div>
-              <div className="checklist">
-                {tender.documents.map((document) => (
-                  <div className="check-item" key={document.name}>
-                    <strong>{document.name}</strong>
-                    <span>{document.owner}</span>
-                    <em className={document.ready ? "ready" : "missing"}>{document.ready ? "Ready" : "Missing"}</em>
-                  </div>
-                ))}
-              </div>
-            </section>
+            {step === 2 && (
+              <StepUpload
+                apiBase={apiBase}
+                profileDescription={profile?.description ?? ""}
+                onAnalyzed={handleAnalyzed}
+              />
+            )}
 
-            <section className="panel">
-              <div className="panel-title">
-                <h2>Gap analysis</h2>
-                <span className={analysis.gapSummary.canQualify ? "status-ok" : "status-off"}>
-                  {analysis.gapSummary.canQualify ? "Can qualify" : "Blocked"}
-                </span>
-              </div>
-              <p className="muted">{analysis.gapSummary.qualificationMessage}</p>
-              <div className="gap-summary">
-                <article>
-                  <span>Ready</span>
-                  <strong>{analysis.gapSummary.readyDocuments}</strong>
-                </article>
-                <article>
-                  <span>Review</span>
-                  <strong>{analysis.gapSummary.reviewDocuments}</strong>
-                </article>
-                <article>
-                  <span>Missing</span>
-                  <strong>{analysis.gapSummary.missingDocuments}</strong>
-                </article>
-                <article>
-                  <span>High blockers</span>
-                  <strong>{analysis.gapSummary.highSeverityBlockers}</strong>
-                </article>
-              </div>
-              {analysis.gapSummary.blockers.length > 0 && (
-                <div className="blocker-list">
-                  <h3>Top blockers</h3>
-                  {analysis.gapSummary.blockers.slice(0, 4).map((item) => (
-                    <div className="blocker-item" key={`${item.documentName}-${item.owner}`}>
-                      <strong>{item.documentName}</strong>
-                      <span>{item.owner} / {item.severity}</span>
-                      <p>{item.recommendation}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="owner-grid">
-                {analysis.gapSummary.ownerBreakdown.map((owner) => (
-                  <article key={owner.owner}>
-                    <strong>{owner.owner}</strong>
-                    <span>{owner.ready} ready</span>
-                    <span>{owner.review} review</span>
-                    <span>{owner.missing} missing</span>
-                  </article>
-                ))}
-              </div>
-              <div className="gap-list">
-                {analysis.gapAnalysis.map((item) => (
-                  <article className="gap-item" key={item.documentName}>
-                    <div>
-                      <strong>{item.documentName}</strong>
-                      <span>{item.owner} / {item.severity} severity</span>
-                    </div>
-                    <em className={item.status}>{item.status}</em>
-                    <p>{item.reason}</p>
-                    <small>{item.recommendation}</small>
-                  </article>
-                ))}
-              </div>
-            </section>
+            {step === 3 && analysis && (
+              <StepAnalysis
+                analysis={analysis}
+                apiBase={apiBase}
+                onPrepareDocuments={() => setStep(4)}
+              />
+            )}
 
-            <section className="panel">
-              <div className="panel-title">
-                <h2>Bid drafts</h2>
-                <span>From backend</span>
-              </div>
-              <div className="actions">
-                <button onClick={() => createDraft("summary")} type="button">Executive summary</button>
-                <button onClick={() => createDraft("technical")} type="button">Technical approach</button>
-                <button onClick={() => createDraft("team")} type="button">Team qualifications</button>
-              </div>
-              <textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={12} placeholder="Choose a draft section." />
-            </section>
+            {step === 4 && analysis && (
+              <StepDocuments
+                tender={analysis.tender}
+                apiBase={apiBase}
+              />
+            )}
           </>
         )}
       </section>

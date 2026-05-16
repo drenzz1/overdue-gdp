@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { persistAnalysisResult } from "../services/databaseService.js";
 import { defaultDocumentAnalysisProvider } from "../services/documentAnalysisService.js";
+import { getProfile } from "../services/companyProfileService.js";
 import { analyzeTender, buildDraft, getSampleAnalysis } from "../services/tenderService.js";
 import type { DraftType, TenderProfile } from "../types.js";
 
@@ -16,20 +16,9 @@ export async function registerTenderRoutes(app: FastifyInstance) {
       notes?: string;
       documentText?: string;
       availableDocuments?: string[];
-      persist?: boolean;
     };
   }>("/api/tenders/analyze", async (request) => {
-    const analysis = analyzeTender(request.body ?? {});
-
-    if (request.body?.persist) {
-      const persistedTenderId = await persistAnalysisResult(analysis);
-      return {
-        ...analysis,
-        ...(persistedTenderId ? { persistedTenderId } : {})
-      };
-    }
-
-    return analysis;
+    return analyzeTender(request.body ?? {}, getProfile());
   });
 
   app.post("/api/tenders/analyze-file", async (request, reply) => {
@@ -43,9 +32,14 @@ export async function registerTenderRoutes(app: FastifyInstance) {
       file.mimetype === "application/pdf" ||
       file.filename.toLowerCase().endsWith(".pdf");
 
-    if (!isPdf) {
+    const isDocx =
+      file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.mimetype === "application/msword" ||
+      file.filename.toLowerCase().endsWith(".docx");
+
+    if (!isPdf && !isDocx) {
       await file.toBuffer();
-      return reply.code(400).send({ error: "Only PDF files are accepted" });
+      return reply.code(400).send({ error: "Only PDF and DOCX files are accepted" });
     }
 
     const buffer = await file.toBuffer();
@@ -73,14 +67,13 @@ export async function registerTenderRoutes(app: FastifyInstance) {
       ...(notes ? { notes } : {})
     };
 
-    return analyzeTender(input);
+    return analyzeTender(input, getProfile());
   });
 
   app.post<{
     Body: {
       type?: DraftType;
       tender?: TenderProfile;
-      companyProfile?: string;
     };
   }>("/api/bids/draft", async (request, reply) => {
     const type = request.body?.type ?? "summary";
@@ -92,7 +85,7 @@ export async function registerTenderRoutes(app: FastifyInstance) {
     const tender = request.body?.tender ?? getSampleAnalysis().tender;
     return {
       type,
-      draft: await buildDraft(type, tender, request.body?.companyProfile)
+      draft: await buildDraft(type, tender, getProfile())
     };
   });
 }
