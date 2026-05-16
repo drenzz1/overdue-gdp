@@ -89,6 +89,23 @@ export type AnalyzeTenderInput = {
   availableDocuments?: string[];
 };
 
+export type CompanyDocumentCategory = "certification" | "reference" | "cv" | "capability" | "legal";
+
+export type CompanyDocument = {
+  id: string;
+  name: string;
+  category: CompanyDocumentCategory;
+  description: string;
+  tags: string[];
+};
+
+export type CompanyProfile = {
+  name: string;
+  description: string;
+  capabilities: string[];
+  documents: CompanyDocument[];
+};
+
 export type DatabaseStatus = {
   configured: boolean;
   connected: boolean;

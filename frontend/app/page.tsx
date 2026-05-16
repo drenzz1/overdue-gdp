@@ -94,13 +94,27 @@ type DatabaseTendersResponse = {
   tenders: TenderDashboardItem[];
 };
 
+type CompanyDocumentCategory = "certification" | "reference" | "cv" | "capability" | "legal";
+
+type CompanyDocument = {
+  id: string;
+  name: string;
+  category: CompanyDocumentCategory;
+  description: string;
+  tags: string[];
+};
+
+type CompanyProfile = {
+  name: string;
+  description: string;
+  capabilities: string[];
+  documents: CompanyDocument[];
+};
+
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3000";
 
 export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [companyProfile, setCompanyProfile] = useState(
-    "Prishtina-based software company with 18 engineers, public sector integrations, cloud delivery, and Albanian/English documentation capacity."
-  );
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
   const [databaseLoading, setDatabaseLoading] = useState(true);
@@ -108,6 +122,14 @@ export default function Home() {
   const [databaseTenders, setDatabaseTenders] = useState<TenderDashboardItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<CompanyProfile | null>(null);
+  const [profileDescription, setProfileDescription] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [newDocName, setNewDocName] = useState("");
+  const [newDocCategory, setNewDocCategory] = useState<CompanyDocumentCategory>("capability");
+  const [newDocDescription, setNewDocDescription] = useState("");
+  const [newDocTags, setNewDocTags] = useState("");
+  const [addingDoc, setAddingDoc] = useState(false);
   const tender = analysis?.tender;
 
   const readyCount = useMemo(
@@ -118,7 +140,57 @@ export default function Home() {
   useEffect(() => {
     void loadSample();
     void loadDatabaseTenders();
+    void loadProfile();
   }, []);
+
+  async function loadProfile() {
+    try {
+      const response = await fetch(`${apiBase}/api/company/profile`);
+      const data = (await response.json()) as CompanyProfile;
+      setProfile(data);
+      setProfileDescription(data.description);
+    } catch {
+      // profile endpoint not available yet — silently skip
+    }
+  }
+
+  async function saveProfileDescription() {
+    if (!profile) return;
+    setProfileSaving(true);
+    try {
+      await fetch(`${apiBase}/api/company/profile`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...profile, description: profileDescription })
+      });
+      await loadProfile();
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  async function addProfileDocument() {
+    if (!newDocName.trim()) return;
+    setAddingDoc(true);
+    try {
+      await fetch(`${apiBase}/api/company/profile/documents`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: newDocName.trim(),
+          category: newDocCategory,
+          description: newDocDescription.trim(),
+          tags: newDocTags.split(",").map((t) => t.trim()).filter(Boolean)
+        })
+      });
+      setNewDocName("");
+      setNewDocDescription("");
+      setNewDocTags("");
+      await loadProfile();
+    } finally {
+      setAddingDoc(false);
+    }
+  }
 
   async function loadSample() {
     setLoading(true);
@@ -136,10 +208,8 @@ export default function Home() {
       body: JSON.stringify({
         fileName: "municipality-digital-platform.pdf",
         fileSize: 80400,
-        notes: companyProfile,
         documentText:
           "Municipality digital platform tender. Deadline 2026-06-03 14:00. Required documents: company registration, tax compliance, references, project manager CV, methodology, financial offer. Scoring: technical methodology 35 points, relevant experience 25 points, team qualifications 20 points, price 15 points, support plan 5 points.",
-        availableDocuments: ["Business registration certificate", "Project manager CV", "Implementation methodology"],
         persist: databaseStatus?.connected ?? false
       })
     });
@@ -189,7 +259,7 @@ export default function Home() {
     try {
       const form = new FormData();
       form.append("file", selectedFile);
-      form.append("notes", companyProfile);
+      if (profileDescription) form.append("notes", profileDescription);
       const response = await fetch(`${apiBase}/api/tenders/analyze-file`, {
         method: "POST",
         body: form
@@ -214,11 +284,7 @@ export default function Home() {
     const response = await fetch(`${apiBase}/api/bids/draft`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        type,
-        tender,
-        companyProfile
-      })
+      body: JSON.stringify({ type, tender })
     });
     const data = (await response.json()) as { draft: string };
     setDraft(data.draft);
@@ -236,9 +302,16 @@ export default function Home() {
         </div>
 
         <label>
-          Company profile
-          <textarea value={companyProfile} onChange={(event) => setCompanyProfile(event.target.value)} rows={9} />
+          Company description
+          <textarea
+            rows={6}
+            value={profileDescription}
+            onChange={(event) => setProfileDescription(event.target.value)}
+          />
         </label>
+        <button disabled={profileSaving} onClick={saveProfileDescription} type="button">
+          {profileSaving ? "Saving…" : "Save profile"}
+        </button>
 
         <label>
           Upload tender PDF
@@ -269,6 +342,77 @@ export default function Home() {
         </header>
 
         {loading && <div className="panel">Loading backend data...</div>}
+
+        {profile && (
+          <section className="panel">
+            <div className="panel-title">
+              <h2>Company Profile — {profile.name}</h2>
+              <span>{profile.documents.length} docs on file</span>
+            </div>
+            <p className="muted">{profile.description}</p>
+            {profile.capabilities.length > 0 && (
+              <div className="profile-caps">
+                {profile.capabilities.map((cap) => (
+                  <span className="profile-cap" key={cap}>{cap}</span>
+                ))}
+              </div>
+            )}
+            <div className="profile-docs">
+              {profile.documents.map((doc) => (
+                <article className="profile-doc" key={doc.id}>
+                  <div>
+                    <strong>{doc.name}</strong>
+                    <span className="profile-doc-category">{doc.category}</span>
+                  </div>
+                  <small className="muted">{doc.description}</small>
+                </article>
+              ))}
+            </div>
+            <div className="profile-add-form">
+              <h3>Add company document</h3>
+              <div className="profile-form-row">
+                <input
+                  placeholder="Document name"
+                  type="text"
+                  value={newDocName}
+                  onChange={(e) => setNewDocName(e.target.value)}
+                />
+                <select
+                  value={newDocCategory}
+                  onChange={(e) => setNewDocCategory(e.target.value as CompanyDocumentCategory)}
+                >
+                  <option value="capability">Capability</option>
+                  <option value="certification">Certification</option>
+                  <option value="cv">CV</option>
+                  <option value="legal">Legal</option>
+                  <option value="reference">Reference</option>
+                </select>
+              </div>
+              <input
+                placeholder="Short description"
+                style={{ width: "100%", marginTop: 8 }}
+                type="text"
+                value={newDocDescription}
+                onChange={(e) => setNewDocDescription(e.target.value)}
+              />
+              <input
+                placeholder="Tags (comma-separated, e.g. cv, project manager)"
+                style={{ width: "100%", marginTop: 8 }}
+                type="text"
+                value={newDocTags}
+                onChange={(e) => setNewDocTags(e.target.value)}
+              />
+              <button
+                disabled={addingDoc || !newDocName.trim()}
+                onClick={addProfileDocument}
+                style={{ marginTop: 10 }}
+                type="button"
+              >
+                {addingDoc ? "Adding…" : "Add document"}
+              </button>
+            </div>
+          </section>
+        )}
 
         {analysis && tender && (
           <>

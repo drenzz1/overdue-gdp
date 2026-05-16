@@ -1,8 +1,9 @@
 import { sampleTender } from "../data/sampleTender.js";
+import { retrieveContext } from "./companyProfileService.js";
 import { extractTenderRequirements } from "./extractionService.js";
 import { buildGapAnalysis, buildGapSummary, missingTenderDocuments } from "./gapAnalysisService.js";
 import { buildScoreExplanation, buildScoreFactors, computeScore } from "./scoringService.js";
-import type { AnalysisResult, AnalyzeTenderInput, DraftType, TenderDocument, TenderProfile } from "../types.js";
+import type { AnalysisResult, AnalyzeTenderInput, CompanyProfile, DraftType, TenderDocument, TenderProfile } from "../types.js";
 
 function cloneTender(tender: TenderProfile): TenderProfile {
   return {
@@ -28,12 +29,12 @@ export function getSampleAnalysis(): AnalysisResult {
   return buildAnalysisResult(cloneTender(sampleTender), "Demo data");
 }
 
-export function analyzeTender(input: AnalyzeTenderInput): AnalysisResult {
+export function analyzeTender(input: AnalyzeTenderInput, profile?: CompanyProfile): AnalysisResult {
   if (!input.fileName) {
     return getSampleAnalysis();
   }
 
-  const extraction = extractTenderRequirements(input);
+  const extraction = extractTenderRequirements(input, profile);
   return buildAnalysisResult(extraction.tender, formatSource(input.fileName, input.fileSize), extraction.reviewItems);
 }
 
@@ -55,16 +56,32 @@ export function missingDocuments(tender: TenderProfile): TenderDocument[] {
   return missingTenderDocuments(tender);
 }
 
-export function buildDraft(type: DraftType, tender: TenderProfile, companyProfile = "") {
+export function buildDraft(type: DraftType, tender: TenderProfile, profile?: CompanyProfile | string) {
   const missing = missingDocuments(tender).map((document) => document.name);
   const missingText = missing.length ? missing.join(", ") : "no missing documents";
-  const profile = companyProfile.trim() || "Regional delivery team with relevant implementation experience.";
+
+  let profileDescription: string;
+  let evidenceBlock = "";
+
+  if (typeof profile === "object" && profile !== null) {
+    profileDescription = profile.description.trim() || "Regional delivery team with relevant implementation experience.";
+    const tenderContext = [tender.title, ...tender.criteria].join(" ");
+    const { matchedDocuments, relevantCapabilities } = retrieveContext(tenderContext);
+    const lines: string[] = [];
+    for (const doc of matchedDocuments) lines.push(`- ${doc.name}: ${doc.description}`);
+    for (const cap of relevantCapabilities) lines.push(`- Capability on file: ${cap}`);
+    if (lines.length) evidenceBlock = `\n\nRelevant company evidence:\n${lines.join("\n")}`;
+  } else {
+    profileDescription =
+      (typeof profile === "string" ? profile.trim() : "") ||
+      "Regional delivery team with relevant implementation experience.";
+  }
 
   const drafts: Record<DraftType, string> = {
     summary: `${tender.buyer}
 ${tender.title}
 
-We propose a compliant, delivery-focused response for ${tender.title}, built around clear governance, practical implementation milestones, and measurable service outcomes. Our company profile matches the tender's core needs: ${profile}
+We propose a compliant, delivery-focused response for ${tender.title}, built around clear governance, practical implementation milestones, and measurable service outcomes. Our company profile matches the tender's core needs: ${profileDescription}${evidenceBlock}
 
 The bid should emphasize comparable references, bilingual delivery capacity, and a support model aligned with the requested ${tender.language} documentation requirements. Current compliance risk is concentrated in: ${missingText}.
 
@@ -72,7 +89,7 @@ Recommended positioning: low-risk regional partner with strong implementation di
     technical: `Technical approach
 
 1. Discovery and compliance mapping
-We will confirm all functional, legal, and submission requirements with ${tender.buyer}, then maintain a traceability matrix that maps every tender requirement to the relevant bid response, document, or delivery artifact.
+We will confirm all functional, legal, and submission requirements with ${tender.buyer}, then maintain a traceability matrix that maps every tender requirement to the relevant bid response, document, or delivery artifact.${evidenceBlock}
 
 2. Implementation
 The delivery plan covers discovery, configuration, integrations, migration, user acceptance testing, training, and go-live support. Workstreams will be managed through weekly checkpoints, issue logs, and acceptance criteria tied to the tender's scoring model.
@@ -85,7 +102,7 @@ Project manager: accountable for governance, buyer communication, reporting, and
 
 Solution architect: accountable for platform design, integration decisions, security alignment, and technical quality gates.
 
-QA lead: accountable for test planning, acceptance evidence, defect management, and release readiness.
+QA lead: accountable for test planning, acceptance evidence, defect management, and release readiness.${evidenceBlock}
 
 The team should attach CVs, role allocation, availability, and short proof points from at least three comparable projects. Missing CVs should be resolved before submission to avoid eligibility failure.`
   };

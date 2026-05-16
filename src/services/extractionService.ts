@@ -1,5 +1,5 @@
 import { sampleTender } from "../data/sampleTender.js";
-import type { AnalyzeTenderInput, TenderDocument, TenderProfile, TenderWeight } from "../types.js";
+import type { AnalyzeTenderInput, CompanyProfile, TenderDocument, TenderProfile, TenderWeight } from "../types.js";
 
 type ExtractionOutput = {
   tender: TenderProfile;
@@ -61,13 +61,13 @@ const weightRules: Array<{ label: string; keywords: string[]; value: number }> =
   { label: "Support plan", keywords: ["support", "maintenance"], value: 5 }
 ];
 
-export function extractTenderRequirements(input: AnalyzeTenderInput): ExtractionOutput {
+export function extractTenderRequirements(input: AnalyzeTenderInput, profile?: CompanyProfile): ExtractionOutput {
   const text = normalize([input.fileName, input.notes, input.documentText].filter(Boolean).join("\n"));
   const reviewItems: string[] = [];
   const domain = detectDomain(text);
   const deadline = extractDeadline(text);
   const value = extractBudget(text) ?? defaultBudget(domain);
-  const documents = extractRequiredDocuments(text, input.availableDocuments);
+  const documents = extractRequiredDocuments(text, input.availableDocuments, profile);
   const weights = extractScoringWeights(text);
 
   if (!deadline.detected) {
@@ -217,18 +217,36 @@ function extractEligibilityCriteria(text: string, domain: string) {
   return [...criteria];
 }
 
-function extractRequiredDocuments(text: string, availableDocuments: string[] = []): TenderDocument[] {
+function extractRequiredDocuments(
+  text: string,
+  availableDocuments: string[] = [],
+  profile?: CompanyProfile
+): TenderDocument[] {
   const available = normalize(availableDocuments.join(" "));
+  const profileDocs = profile?.documents ?? [];
+
   const documents = documentRules
     .filter((rule) => containsAny(text, rule.keywords))
     .map((rule) => {
-      const ready = containsAny(available, [rule.name, ...rule.keywords]);
+      const readyByAvailable = containsAny(available, [rule.name, ...rule.keywords]);
+
+      const matchingProfileDoc = profileDocs.find((doc) =>
+        containsAny(normalize([doc.name, ...doc.tags].join(" ")), [rule.name, ...rule.keywords])
+      );
+
+      const ready = readyByAvailable || Boolean(matchingProfileDoc);
+      const evidence = matchingProfileDoc
+        ? `Company profile: ${matchingProfileDoc.description}`
+        : readyByAvailable
+          ? "Matched against available company documents."
+          : undefined;
+
       return {
         name: rule.name,
         owner: rule.owner,
         ready,
-        ...(ready ? { evidence: "Matched against available company documents." } : {}),
-        ...(!ready ? { reviewReason: "Required by tender keywords, not found in available company documents." } : {})
+        ...(evidence ? { evidence } : {}),
+        ...(!ready ? { reviewReason: "Required by tender keywords, not found in company profile or available documents." } : {})
       };
     });
 

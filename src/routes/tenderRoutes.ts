@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { persistAnalysisResult } from "../services/databaseService.js";
 import { defaultDocumentAnalysisProvider } from "../services/documentAnalysisService.js";
+import { getProfile } from "../services/companyProfileService.js";
 import { analyzeTender, buildDraft, getSampleAnalysis } from "../services/tenderService.js";
 import type { DraftType, TenderProfile } from "../types.js";
 
@@ -19,7 +20,7 @@ export async function registerTenderRoutes(app: FastifyInstance) {
       persist?: boolean;
     };
   }>("/api/tenders/analyze", async (request) => {
-    const analysis = analyzeTender(request.body ?? {});
+    const analysis = analyzeTender(request.body ?? {}, getProfile());
 
     if (request.body?.persist) {
       const persistedTenderId = await persistAnalysisResult(analysis);
@@ -73,7 +74,7 @@ export async function registerTenderRoutes(app: FastifyInstance) {
       ...(notes ? { notes } : {})
     };
 
-    return analyzeTender(input);
+    return analyzeTender(input, getProfile());
   });
 
   app.post<{
@@ -92,7 +93,7 @@ export async function registerTenderRoutes(app: FastifyInstance) {
     const tender = request.body?.tender ?? getSampleAnalysis().tender;
     return {
       type,
-      draft: buildDraft(type, tender, request.body?.companyProfile)
+      draft: buildDraft(type, tender, getProfile())
     };
   });
 }

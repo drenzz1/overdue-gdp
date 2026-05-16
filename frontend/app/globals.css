@@ -463,6 +463,83 @@ ul {
   line-height: 1.4;
 }
 
+.profile-caps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.profile-cap {
+  background: #edf1ea;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.profile-docs {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.profile-doc {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.profile-doc > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-doc-category {
+  background: #e8f0fd;
+  border-radius: 999px;
+  color: #2d5fa8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+
+.profile-add-form {
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.profile-add-form h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.profile-form-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.profile-add-form input,
+.profile-add-form select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+}
+
+.profile-add-form select {
+  background: var(--surface);
+  cursor: pointer;
+}
+
 @media (max-width: 900px) {
   .page,
   .metrics,
