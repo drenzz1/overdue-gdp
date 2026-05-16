@@ -1,6 +1,7 @@
 import { sampleTender } from "../data/sampleTender.js";
 import { extractTenderRequirements } from "./extractionService.js";
 import { buildGapAnalysis, buildGapSummary, missingTenderDocuments } from "./gapAnalysisService.js";
+import { generateText } from "./geminiService.js";
 import { buildScoreExplanation, buildScoreFactors, computeScore } from "./scoringService.js";
 import type { AnalysisResult, AnalyzeTenderInput, DraftType, TenderDocument, TenderProfile } from "../types.js";
 
@@ -55,42 +56,42 @@ export function missingDocuments(tender: TenderProfile): TenderDocument[] {
   return missingTenderDocuments(tender);
 }
 
-export function buildDraft(type: DraftType, tender: TenderProfile, companyProfile = "") {
+export async function buildDraft(type: DraftType, tender: TenderProfile, companyProfile = ""): Promise<string> {
   const missing = missingDocuments(tender).map((document) => document.name);
-  const missingText = missing.length ? missing.join(", ") : "no missing documents";
+  const missingText = missing.length ? missing.join(", ") : "none";
   const profile = companyProfile.trim() || "Regional delivery team with relevant implementation experience.";
 
-  const drafts: Record<DraftType, string> = {
-    summary: `${tender.buyer}
-${tender.title}
+  const context = `Tender title: ${tender.title}
+Buyer: ${tender.buyer}
+Region: ${tender.region}
+Deadline: ${tender.deadline}
+Value: ${tender.value}
+Language requirements: ${tender.language}
+Submission channel: ${tender.channel}
+Eligibility criteria: ${tender.criteria.join("; ")}
+Missing documents: ${missingText}
+Company profile: ${profile}`;
 
-We propose a compliant, delivery-focused response for ${tender.title}, built around clear governance, practical implementation milestones, and measurable service outcomes. Our company profile matches the tender's core needs: ${profile}
+  const prompts: Record<DraftType, string> = {
+    summary: `You are a bid writing expert. Write a professional executive summary for a public tender bid.
+Use the tender details below to write a concise, compelling summary (3-4 paragraphs) that positions the company as the best choice.
+Address compliance risks from missing documents and highlight strengths. Write in formal English.
 
-The bid should emphasize comparable references, bilingual delivery capacity, and a support model aligned with the requested ${tender.language} documentation requirements. Current compliance risk is concentrated in: ${missingText}.
+${context}`,
+    technical: `You are a bid writing expert. Write a detailed technical approach section for a public tender bid.
+Use the tender details below. Cover: discovery and requirements mapping, implementation methodology, delivery milestones, testing, training, and post-go-live support.
+Be specific to this tender. Write in formal English. Use numbered sections.
 
-Recommended positioning: low-risk regional partner with strong implementation discipline and rapid public-sector onboarding.`,
-    technical: `Technical approach
+${context}`,
+    team: `You are a bid writing expert. Write a team qualifications section for a public tender bid.
+Use the tender details below. Describe the key roles needed (project manager, solution architect, QA lead, and any domain-specific roles relevant to this tender).
+For each role state responsibilities and what experience should be demonstrated. End with a note on CV and reference requirements.
+Write in formal English.
 
-1. Discovery and compliance mapping
-We will confirm all functional, legal, and submission requirements with ${tender.buyer}, then maintain a traceability matrix that maps every tender requirement to the relevant bid response, document, or delivery artifact.
-
-2. Implementation
-The delivery plan covers discovery, configuration, integrations, migration, user acceptance testing, training, and go-live support. Workstreams will be managed through weekly checkpoints, issue logs, and acceptance criteria tied to the tender's scoring model.
-
-3. Support
-The support model includes a 24-month maintenance period, incident triage, release management, knowledge transfer, and bilingual documentation for operational continuity.`,
-    team: `Team qualifications
-
-Project manager: accountable for governance, buyer communication, reporting, and milestone control.
-
-Solution architect: accountable for platform design, integration decisions, security alignment, and technical quality gates.
-
-QA lead: accountable for test planning, acceptance evidence, defect management, and release readiness.
-
-The team should attach CVs, role allocation, availability, and short proof points from at least three comparable projects. Missing CVs should be resolved before submission to avoid eligibility failure.`
+${context}`
   };
 
-  return drafts[type];
+  return generateText(prompts[type]);
 }
 
 function buildAnalysisResult(tender: TenderProfile, source: string, reviewItems: string[] = []): AnalysisResult {

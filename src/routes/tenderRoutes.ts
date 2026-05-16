@@ -92,7 +92,7 @@ export async function registerTenderRoutes(app: FastifyInstance) {
     const tender = request.body?.tender ?? getSampleAnalysis().tender;
     return {
       type,
-      draft: buildDraft(type, tender, request.body?.companyProfile)
+      draft: await buildDraft(type, tender, request.body?.companyProfile)
     };
   });
 }
