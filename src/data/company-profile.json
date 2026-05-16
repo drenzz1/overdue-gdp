@@ -1,6 +1,177 @@
 {
   "name": "Gjirafa Tek",
-  "description": "Company Description\nGjirafa Tek is a technology and digital solutions company focused on software development, cloud infrastructure, digital transformation, and enterprise technology services. The company delivers scalable web and mobile applications, system integrations, data-driven platforms, and IT consulting solutions for both private and public sector clients. With expertise in modern software engineering practices, cybersecurity, cloud technologies, and platform development, Gjirafa Tek supports organizations in improving operational efficiency, digital accessibility, and user experience through innovative technology solutions.",
-  "capabilities": [],
-  "documents": []
+  "description": "Gjirafa Tek is a Prishtina-based technology company with 22 engineers specialising in software development, cloud infrastructure, public sector digital transformation, system integrations, e-Procurement platforms, data-driven services, cybersecurity, and bilingual (Albanian/English) delivery. The company has delivered platforms for central and local government bodies across Kosovo and the region, with a proven track record in public procurement compliance, agile project delivery, and post-go-live maintenance.",
+  "capabilities": [
+    "software development and web platform delivery",
+    "cloud infrastructure and DevOps on AWS and Azure",
+    "public sector system integrations and e-Procurement portals",
+    "Albanian and English technical documentation and training",
+    "agile implementation with discovery, migration, UAT, and support phases",
+    "cybersecurity auditing and compliance for public sector clients",
+    "data platform development and analytics dashboards",
+    "24-month managed support and SLA-backed maintenance contracts"
+  ],
+  "documents": [
+    {
+      "id": "doc-1",
+      "name": "Business registration certificate",
+      "category": "legal",
+      "description": "Gjirafa Tek SH.P.K. is registered with the Kosovo Business Registration Agency (KBRA), registration number 811234567, valid and current. Certificate available in Albanian and English.",
+      "tags": [
+        "business registration",
+        "company registration",
+        "registration certificate",
+        "legal",
+        "KBRA",
+        "sh.p.k"
+      ]
+    },
+    {
+      "id": "doc-2",
+      "name": "Tax compliance certificate",
+      "category": "legal",
+      "description": "Certificate of tax compliance issued by the Kosovo Tax Administration (ATK), confirming Gjirafa Tek is current on all VAT, corporate income tax, and social contributions. Valid for the current fiscal year.",
+      "tags": [
+        "tax compliance",
+        "tax certificate",
+        "tax clearance",
+        "ATK",
+        "fiscal compliance",
+        "VAT"
+      ]
+    },
+    {
+      "id": "doc-3",
+      "name": "Reference 1 — Kosovo e-Procurement Portal (PPRC)",
+      "category": "reference",
+      "description": "Delivered the national e-Procurement portal for the Public Procurement Regulatory Commission of Kosovo (PPRC). Project value EUR 320,000. Covered discovery, platform build, data migration from legacy system, bilingual training for 400+ contracting authority users, and 12-month post-go-live support.",
+      "tags": [
+        "references",
+        "comparable projects",
+        "previous experience",
+        "similar projects",
+        "e-procurement",
+        "public sector",
+        "government",
+        "portal"
+      ]
+    },
+    {
+      "id": "doc-4",
+      "name": "Reference 2 — Ministry of Finance Digital Services Platform",
+      "category": "reference",
+      "description": "End-to-end delivery of a citizen digital services platform for the Ministry of Finance of Kosovo. Project value EUR 210,000. Integrated with national ID registry, payment gateway, and municipal databases. Albanian and English interfaces. 18-month support contract.",
+      "tags": [
+        "references",
+        "comparable projects",
+        "previous experience",
+        "similar projects",
+        "digital services",
+        "government platform",
+        "ministry",
+        "public sector"
+      ]
+    },
+    {
+      "id": "doc-5",
+      "name": "Reference 3 — Municipality of Gjakova Smart City Dashboard",
+      "category": "reference",
+      "description": "Delivered a real-time smart city operations dashboard for the Municipality of Gjakova. Project value EUR 85,000. Covered IoT data ingestion, analytics dashboards, mobile app, and staff training. 24-month SLA maintenance contract included.",
+      "tags": [
+        "references",
+        "comparable projects",
+        "previous experience",
+        "similar projects",
+        "municipality",
+        "smart city",
+        "dashboard",
+        "public sector"
+      ]
+    },
+    {
+      "id": "doc-6",
+      "name": "Project manager CV — Artan Krasniqi",
+      "category": "cv",
+      "description": "PMP-certified Project Manager with 10 years of experience in public sector IT delivery in Kosovo and Albania. Managed 12 government platform projects. Fluent in Albanian and English. Has led teams of up to 15 engineers. Currently available for full project assignment.",
+      "tags": [
+        "cv",
+        "project manager",
+        "curriculum vitae",
+        "key experts",
+        "team qualifications",
+        "PMP",
+        "project management",
+        "cvs"
+      ]
+    },
+    {
+      "id": "doc-7",
+      "name": "Solution architect CV — Rina Berisha",
+      "category": "cv",
+      "description": "AWS Certified Solution Architect with 8 years of experience designing scalable web platforms and government system integrations. Designed architecture for 5 public sector platforms. Expertise in microservices, API gateways, OAuth2, and GDPR-compliant data handling.",
+      "tags": [
+        "cv",
+        "solution architect",
+        "architect",
+        "curriculum vitae",
+        "key experts",
+        "team qualifications",
+        "AWS",
+        "architecture",
+        "cvs"
+      ]
+    },
+    {
+      "id": "doc-8",
+      "name": "QA lead CV — Blerta Hyseni",
+      "category": "cv",
+      "description": "ISTQB-certified QA Lead with 6 years of experience in test planning, automated testing, and acceptance evidence for public sector platforms. Led UAT and release readiness for 8 government digital projects. Proficient in Albanian and English test documentation.",
+      "tags": [
+        "cv",
+        "QA lead",
+        "quality assurance",
+        "curriculum vitae",
+        "key experts",
+        "team qualifications",
+        "testing",
+        "ISTQB",
+        "cvs"
+      ]
+    },
+    {
+      "id": "doc-9",
+      "name": "Implementation methodology",
+      "category": "capability",
+      "description": "Gjirafa Tek's ISO-9001-aligned agile delivery methodology adapted for public sector procurement. Covers four phases: (1) Discovery and Requirements Mapping, (2) Iterative Platform Development with bi-weekly demos, (3) Migration, UAT, and Bilingual Training, (4) Go-Live and 24-month Support. Full traceability matrix and risk register included.",
+      "tags": [
+        "methodology",
+        "technical approach",
+        "implementation plan",
+        "delivery plan",
+        "agile",
+        "ISO",
+        "discovery",
+        "migration",
+        "training",
+        "support",
+        "UAT"
+      ]
+    },
+    {
+      "id": "doc-10",
+      "name": "24-month maintenance and support price table",
+      "category": "capability",
+      "description": "Standardised 24-month SLA support pricing template: Tier 1 helpdesk response 4h, Tier 2 resolution 48h, Tier 3 escalation 5 days. Includes monthly release cycles, security patches, bilingual documentation updates, and dedicated account manager. Unit pricing per service line available on request.",
+      "tags": [
+        "24-month",
+        "maintenance",
+        "support period",
+        "SLA",
+        "maintenance price",
+        "support pricing",
+        "price table",
+        "helpdesk"
+      ]
+    }
+  ]
 }

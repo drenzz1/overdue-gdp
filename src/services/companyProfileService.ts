@@ -92,15 +92,18 @@ export type ProfileContext = {
 export function retrieveContext(tenderText: string): ProfileContext {
   const text = tenderText.toLowerCase();
 
-  const matchedDocuments = currentProfile.documents.filter(
-    (doc) =>
-      doc.tags.some((tag) => text.includes(tag.toLowerCase())) ||
-      text.includes(doc.name.toLowerCase())
-  );
+  const matchedDocuments = currentProfile.documents.filter((doc) => {
+    const tagMatch = doc.tags.some((tag) => text.includes(tag.toLowerCase()));
+    const nameMatch = text.includes(doc.name.toLowerCase());
+    const descWords = doc.description.toLowerCase().split(/\s+/).filter((w) => w.length > 5);
+    const descMatch = descWords.some((word) => text.includes(word));
+    return tagMatch || nameMatch || descMatch;
+  });
 
-  const relevantCapabilities = currentProfile.capabilities.filter((cap) =>
-    text.includes(cap.toLowerCase())
-  );
+  const relevantCapabilities = currentProfile.capabilities.filter((cap) => {
+    const capWords = cap.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
+    return capWords.some((word) => text.includes(word));
+  });
 
   return { matchedDocuments, relevantCapabilities };
 }

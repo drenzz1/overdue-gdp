@@ -17,7 +17,7 @@ function getClient(): OpenAI {
   return client;
 }
 
-export async function generateText(prompt: string, systemInstruction?: string): Promise<string> {
+export async function generateText(prompt: string, systemInstruction?: string, maxTokens = 1024): Promise<string> {
   const openai = getClient();
   const maxRetries = 3;
 
@@ -29,7 +29,7 @@ export async function generateText(prompt: string, systemInstruction?: string): 
           ...(systemInstruction ? [{ role: "system" as const, content: systemInstruction }] : []),
           { role: "user" as const, content: prompt }
         ],
-        max_tokens: 1024,
+        max_tokens: maxTokens,
         temperature: 0.4
       });
       return response.choices[0]?.message?.content?.trim() ?? "";

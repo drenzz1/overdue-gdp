@@ -23,13 +23,13 @@ export const sampleTender: TenderProfile = {
     { label: "Support plan", value: 5 }
   ],
   documents: [
-    { name: "Business registration certificate", owner: "Finance", ready: true },
-    { name: "Tax compliance certificate", owner: "Finance", ready: false },
-    { name: "Three project references", owner: "Sales", ready: true },
-    { name: "Project manager CV", owner: "Delivery", ready: true },
-    { name: "Solution architect CV", owner: "Delivery", ready: false },
-    { name: "QA lead CV", owner: "Delivery", ready: false },
-    { name: "Implementation timeline", owner: "Delivery", ready: true },
-    { name: "24-month maintenance price table", owner: "Finance", ready: false }
+    { name: "Business registration certificate", owner: "Finance", ready: true, evidence: "KBRA registration certificate on file, valid and current." },
+    { name: "Tax compliance certificate", owner: "Finance", ready: true, evidence: "ATK tax compliance certificate on file for current fiscal year." },
+    { name: "Three project references", owner: "Sales", ready: true, evidence: "Three signed references: PPRC e-Procurement Portal, MoF Digital Services Platform, Gjakova Smart City Dashboard." },
+    { name: "Project manager CV", owner: "Delivery", ready: true, evidence: "CV for Artan Krasniqi (PMP, 10 years public sector IT) on file." },
+    { name: "Solution architect CV", owner: "Delivery", ready: true, evidence: "CV for Rina Berisha (AWS Certified Solution Architect, 8 years) on file." },
+    { name: "QA lead CV", owner: "Delivery", ready: true, evidence: "CV for Blerta Hyseni (ISTQB QA Lead, 6 years) on file." },
+    { name: "Implementation timeline", owner: "Delivery", ready: true, evidence: "ISO-9001-aligned agile methodology covering discovery, migration, training, and support on file." },
+    { name: "24-month maintenance price table", owner: "Finance", ready: true, evidence: "Standardised SLA pricing template with Tier 1/2/3 support rates on file." }
   ]
 };

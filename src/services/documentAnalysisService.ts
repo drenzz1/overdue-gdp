@@ -1,5 +1,11 @@
+import { createRequire } from "module";
 import mammoth from "mammoth";
-import { generateTextFromPdf, hasGemini } from "./geminiService.js";
+import { hasGemini } from "./geminiService.js";
+
+// pdf-parse v1 is CJS-only; use createRequire for ESM interop
+const require = createRequire(import.meta.url);
+type PdfParseResult = { text: string; numpages: number };
+const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<PdfParseResult>;
 
 export type DocumentAnalysisResult = {
   extractedText: string;
@@ -40,15 +46,11 @@ class GeminiDocumentAnalysisProvider implements DocumentAnalysisProvider {
       };
     }
 
-    // PDF — send inline to Gemini for text extraction
-    const text = await generateTextFromPdf(
-      buffer.toString("base64"),
-      "Extract all text from this tender document. Return only the raw extracted text, preserving structure with newlines. Do not summarize or interpret — just extract."
-    );
-
+    // PDF — extract text locally with pdf-parse
+    const parsed = await pdfParse(buffer);
     return {
-      extractedText: text,
-      metadata: { provider: "gemini-pdf" }
+      extractedText: parsed.text,
+      metadata: { pageCount: parsed.numpages, provider: "pdf-parse" }
     };
   }
 }
