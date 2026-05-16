@@ -1,4 +1,6 @@
 import { sampleTender } from "../data/sampleTender.js";
+import { extractTenderRequirements } from "./extractionService.js";
+import { buildGapAnalysis, missingTenderDocuments } from "./gapAnalysisService.js";
 import type { AnalysisResult, AnalyzeTenderInput, DraftType, TenderDocument, TenderProfile } from "../types.js";
 
 function cloneTender(tender: TenderProfile): TenderProfile {
@@ -30,35 +32,8 @@ export function analyzeTender(input: AnalyzeTenderInput): AnalysisResult {
     return getSampleAnalysis();
   }
 
-  const combined = `${input.fileName} ${input.notes ?? ""}`.toLowerCase();
-  const construction = combined.includes("construction") || combined.includes("infrastructure");
-  const software = combined.includes("software") || combined.includes("platform") || combined.includes("digital");
-
-  const tender: TenderProfile = {
-    ...cloneTender(sampleTender),
-    title: titleFromFileName(input.fileName),
-    buyer: combined.includes("municipality") ? "Municipality procurement office" : "Public contracting authority",
-    value: construction ? "EUR 520,000" : software ? "EUR 240,000" : "To be confirmed",
-    criteria: [
-      "Legal registration and tax compliance certificates are mandatory.",
-      construction
-        ? "Comparable construction references and site safety plan must be included."
-        : "Comparable project references and implementation methodology must be included.",
-      "Named delivery team CVs and role allocation must be submitted.",
-      "Financial offer must follow the tender template exactly.",
-      "All required declarations must be signed before portal submission."
-    ],
-    documents: [
-      { name: "Business registration certificate", owner: "Finance", ready: true },
-      { name: "Tax compliance certificate", owner: "Finance", ready: false },
-      { name: "Comparable project references", owner: "Sales", ready: false },
-      { name: "Delivery team CVs", owner: "Delivery", ready: true },
-      { name: "Signed declarations", owner: "Legal", ready: false },
-      { name: "Financial offer template", owner: "Finance", ready: false }
-    ]
-  };
-
-  return buildAnalysisResult(tender, formatSource(input.fileName, input.fileSize));
+  const extraction = extractTenderRequirements(input);
+  return buildAnalysisResult(extraction.tender, formatSource(input.fileName, input.fileSize), extraction.reviewItems);
 }
 
 export function scoreTender(tender: TenderProfile) {
@@ -80,7 +55,7 @@ export function deadlineRisk(deadline: string): AnalysisResult["deadlineRisk"] {
 }
 
 export function missingDocuments(tender: TenderProfile): TenderDocument[] {
-  return tender.documents.filter((document) => !document.ready);
+  return missingTenderDocuments(tender);
 }
 
 export function buildDraft(type: DraftType, tender: TenderProfile, companyProfile = "") {
@@ -121,12 +96,14 @@ The team should attach CVs, role allocation, availability, and short proof point
   return drafts[type];
 }
 
-function buildAnalysisResult(tender: TenderProfile, source: string): AnalysisResult {
+function buildAnalysisResult(tender: TenderProfile, source: string, reviewItems: string[] = []): AnalysisResult {
   return {
     tender,
     source,
     score: scoreTender(tender),
     deadlineRisk: deadlineRisk(tender.deadline),
-    missingDocuments: missingDocuments(tender)
+    missingDocuments: missingDocuments(tender),
+    gapAnalysis: buildGapAnalysis(tender),
+    reviewItems
   };
 }

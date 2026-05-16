@@ -6,6 +6,8 @@ type TenderDocument = {
   name: string;
   owner: string;
   ready: boolean;
+  evidence?: string;
+  reviewReason?: string;
 };
 
 type TenderProfile = {
@@ -27,6 +29,16 @@ type AnalysisResult = {
   score: number;
   deadlineRisk: "Low" | "Medium" | "High";
   missingDocuments: TenderDocument[];
+  gapAnalysis: Array<{
+    documentName: string;
+    owner: string;
+    status: "ready" | "missing" | "review";
+    severity: "Low" | "Medium" | "High";
+    reason: string;
+    recommendation: string;
+    evidence?: string;
+  }>;
+  reviewItems: string[];
 };
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3000";
@@ -65,7 +77,10 @@ export default function Home() {
       body: JSON.stringify({
         fileName: "municipality-digital-platform.pdf",
         fileSize: 80400,
-        notes: companyProfile
+        notes: companyProfile,
+        documentText:
+          "Municipality digital platform tender. Deadline 2026-06-03 14:00. Required documents: company registration, tax compliance, references, project manager CV, methodology, financial offer. Scoring: technical methodology 35 points, relevant experience 25 points, team qualifications 20 points, price 15 points, support plan 5 points.",
+        availableDocuments: ["Business registration certificate", "Project manager CV", "Implementation methodology"]
       })
     });
     const data = (await response.json()) as AnalysisResult;
@@ -153,6 +168,20 @@ export default function Home() {
               </article>
             </section>
 
+            {analysis.reviewItems.length > 0 && (
+              <section className="panel">
+                <div className="panel-title">
+                  <h2>Extraction review</h2>
+                  <span>{analysis.reviewItems.length} items</span>
+                </div>
+                <ul>
+                  {analysis.reviewItems.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             <section className="panel">
               <div className="panel-title">
                 <h2>Compliance checklist</h2>
@@ -165,6 +194,26 @@ export default function Home() {
                     <span>{document.owner}</span>
                     <em className={document.ready ? "ready" : "missing"}>{document.ready ? "Ready" : "Missing"}</em>
                   </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="panel">
+              <div className="panel-title">
+                <h2>Gap analysis</h2>
+                <span>{analysis.missingDocuments.length} missing</span>
+              </div>
+              <div className="gap-list">
+                {analysis.gapAnalysis.map((item) => (
+                  <article className="gap-item" key={item.documentName}>
+                    <div>
+                      <strong>{item.documentName}</strong>
+                      <span>{item.owner} / {item.severity} severity</span>
+                    </div>
+                    <em className={item.status}>{item.status}</em>
+                    <p>{item.reason}</p>
+                    <small>{item.recommendation}</small>
+                  </article>
                 ))}
               </div>
             </section>

@@ -2,6 +2,8 @@ export type TenderDocument = {
   name: string;
   owner: string;
   ready: boolean;
+  evidence?: string;
+  reviewReason?: string;
 };
 
 export type TenderWeight = {
@@ -24,16 +26,32 @@ export type TenderProfile = {
 
 export type DraftType = "summary" | "technical" | "team";
 
+export type GapStatus = "ready" | "missing" | "review";
+
+export type GapAnalysisItem = {
+  documentName: string;
+  owner: string;
+  status: GapStatus;
+  severity: "Low" | "Medium" | "High";
+  reason: string;
+  recommendation: string;
+  evidence?: string;
+};
+
 export type AnalysisResult = {
   tender: TenderProfile;
   source: string;
   score: number;
   deadlineRisk: "Low" | "Medium" | "High";
   missingDocuments: TenderDocument[];
+  gapAnalysis: GapAnalysisItem[];
+  reviewItems: string[];
 };
 
 export type AnalyzeTenderInput = {
   fileName?: string;
   fileSize?: number;
   notes?: string;
+  documentText?: string;
+  availableDocuments?: string[];
 };

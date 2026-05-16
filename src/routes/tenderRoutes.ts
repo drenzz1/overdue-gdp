@@ -12,6 +12,8 @@ export async function registerTenderRoutes(app: FastifyInstance) {
       fileName?: string;
       fileSize?: number;
       notes?: string;
+      documentText?: string;
+      availableDocuments?: string[];
     };
   }>("/api/tenders/analyze", async (request) => analyzeTender(request.body ?? {}));
 
@@ -31,6 +33,7 @@ export async function registerTenderRoutes(app: FastifyInstance) {
     const input = {
       fileName: file.filename,
       fileSize: buffer.length,
+      documentText: buffer.toString("utf8"),
       ...(notes ? { notes } : {})
     };
 
