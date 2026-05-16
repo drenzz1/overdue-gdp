@@ -39,6 +39,29 @@ type AnalysisResult = {
     evidence?: string;
   }>;
   reviewItems: string[];
+  persistedTenderId?: string;
+};
+
+type DatabaseStatus = {
+  configured: boolean;
+  connected: boolean;
+  message: string;
+};
+
+type TenderDashboardItem = {
+  id: string;
+  title: string;
+  buyer: string;
+  status: string;
+  deadline: string | null;
+  score: number | null;
+  missingDocuments: number;
+  createdAt: string;
+};
+
+type DatabaseTendersResponse = {
+  status: DatabaseStatus;
+  tenders: TenderDashboardItem[];
 };
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3000";
@@ -50,6 +73,9 @@ export default function Home() {
   );
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
+  const [databaseLoading, setDatabaseLoading] = useState(true);
+  const [databaseStatus, setDatabaseStatus] = useState<DatabaseStatus | null>(null);
+  const [databaseTenders, setDatabaseTenders] = useState<TenderDashboardItem[]>([]);
   const tender = analysis?.tender;
 
   const readyCount = useMemo(
@@ -59,6 +85,7 @@ export default function Home() {
 
   useEffect(() => {
     void loadSample();
+    void loadDatabaseTenders();
   }, []);
 
   async function loadSample() {
@@ -80,12 +107,47 @@ export default function Home() {
         notes: companyProfile,
         documentText:
           "Municipality digital platform tender. Deadline 2026-06-03 14:00. Required documents: company registration, tax compliance, references, project manager CV, methodology, financial offer. Scoring: technical methodology 35 points, relevant experience 25 points, team qualifications 20 points, price 15 points, support plan 5 points.",
-        availableDocuments: ["Business registration certificate", "Project manager CV", "Implementation methodology"]
+        availableDocuments: ["Business registration certificate", "Project manager CV", "Implementation methodology"],
+        persist: databaseStatus?.connected ?? false
       })
     });
     const data = (await response.json()) as AnalysisResult;
     setAnalysis(data);
+    if (data.persistedTenderId) {
+      await loadDatabaseTenders();
+    }
     setLoading(false);
+  }
+
+  async function loadDatabaseTenders() {
+    setDatabaseLoading(true);
+    try {
+      const response = await fetch(`${apiBase}/api/database/tenders`);
+      const data = (await response.json()) as DatabaseTendersResponse;
+      setDatabaseStatus(data.status);
+      setDatabaseTenders(data.tenders);
+    } catch (error) {
+      setDatabaseStatus({
+        configured: false,
+        connected: false,
+        message: error instanceof Error ? error.message : "Unable to reach backend database endpoint."
+      });
+      setDatabaseTenders([]);
+    } finally {
+      setDatabaseLoading(false);
+    }
+  }
+
+  async function seedDatabaseDemo() {
+    setDatabaseLoading(true);
+    try {
+      await fetch(`${apiBase}/api/database/seed-demo`, {
+        method: "POST"
+      });
+      await loadDatabaseTenders();
+    } finally {
+      setDatabaseLoading(false);
+    }
   }
 
   async function createDraft(type: "summary" | "technical" | "team") {
@@ -122,6 +184,7 @@ export default function Home() {
 
         <button onClick={loadSample} type="button">Load sample</button>
         <button onClick={analyzeExample} type="button">Analyze demo tender</button>
+        <button onClick={loadDatabaseTenders} type="button">Refresh DB data</button>
       </aside>
 
       <section className="workspace">
@@ -134,6 +197,44 @@ export default function Home() {
 
         {analysis && tender && (
           <>
+            <section className="panel">
+              <div className="panel-title">
+                <h2>Database</h2>
+                <span className={databaseStatus?.connected ? "status-ok" : "status-off"}>
+                  {databaseStatus?.connected ? "Connected" : "Not connected"}
+                </span>
+              </div>
+              <p className="muted">
+                {databaseLoading ? "Checking database..." : databaseStatus?.message ?? "Database status unavailable."}
+              </p>
+              <div className="actions">
+                <button onClick={loadDatabaseTenders} type="button">Reload tenders</button>
+                <button disabled={!databaseStatus?.connected} onClick={seedDatabaseDemo} type="button">
+                  Seed demo tender
+                </button>
+              </div>
+              <div className="db-list">
+                {databaseTenders.length === 0 && (
+                  <div className="db-empty">
+                    {databaseStatus?.connected
+                      ? "No persisted tenders yet. Seed demo data or analyze a tender."
+                      : "Configure DATABASE_URL and run migrations to show persisted tender data here."}
+                  </div>
+                )}
+                {databaseTenders.map((item) => (
+                  <article className="db-item" key={item.id}>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <span>{item.buyer}</span>
+                    </div>
+                    <span>{item.status}</span>
+                    <span>{item.score ?? "No score"}</span>
+                    <span>{item.missingDocuments} missing</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+
             <section className="metrics">
               <article><span>Score</span><strong>{analysis.score}</strong></article>
               <article><span>Risk</span><strong>{analysis.deadlineRisk}</strong></article>

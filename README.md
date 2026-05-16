@@ -35,6 +35,10 @@ Frontend runs at `http://localhost:3001`.
 - `POST /api/tenders/analyze`
 - `POST /api/tenders/analyze-file`
 - `POST /api/bids/draft`
+- `GET /api/database/status`
+- `GET /api/database/tenders`
+- `POST /api/database/seed-demo`
+- `POST /api/database/analyze-and-save`
 
 PDF parsing is represented by deterministic backend services suitable for demo purposes. The upload route derives a tender workspace from file metadata and profile notes, ready to swap for a real document AI pipeline.
 

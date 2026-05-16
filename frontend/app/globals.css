@@ -37,6 +37,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -139,6 +144,54 @@ h2 {
 
 .grid {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.muted {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.status-ok {
+  color: var(--ok) !important;
+  background: #e6f4ed !important;
+}
+
+.status-off {
+  color: var(--danger) !important;
+  background: #f9e9e9 !important;
+}
+
+.db-list {
+  display: grid;
+  gap: 10px;
+}
+
+.db-empty,
+.db-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.db-empty {
+  color: var(--muted);
+}
+
+.db-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.db-item strong,
+.db-item span {
+  display: block;
+}
+
+.db-item div span {
+  color: var(--muted);
+  margin-top: 3px;
 }
 
 .metrics article,

@@ -46,6 +46,7 @@ export type AnalysisResult = {
   missingDocuments: TenderDocument[];
   gapAnalysis: GapAnalysisItem[];
   reviewItems: string[];
+  persistedTenderId?: string;
 };
 
 export type AnalyzeTenderInput = {
@@ -54,4 +55,21 @@ export type AnalyzeTenderInput = {
   notes?: string;
   documentText?: string;
   availableDocuments?: string[];
+};
+
+export type DatabaseStatus = {
+  configured: boolean;
+  connected: boolean;
+  message: string;
+};
+
+export type TenderDashboardItem = {
+  id: string;
+  title: string;
+  buyer: string;
+  status: string;
+  deadline: string | null;
+  score: number | null;
+  missingDocuments: number;
+  createdAt: string;
 };

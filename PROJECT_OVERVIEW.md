@@ -60,6 +60,10 @@ Backend endpoints:
 - `POST /api/tenders/analyze`
 - `POST /api/tenders/analyze-file`
 - `POST /api/bids/draft`
+- `GET /api/database/status`
+- `GET /api/database/tenders`
+- `POST /api/database/seed-demo`
+- `POST /api/database/analyze-and-save`
 
 ## Frontend
 
@@ -83,6 +87,8 @@ Frontend currently displays:
 - Tender score
 - Deadline risk
 - Ready and missing document counts
+- Database connection status
+- Persisted tender rows from PostgreSQL
 - Tender snapshot
 - Eligibility requirements
 - Extraction review notes
@@ -261,6 +267,24 @@ Expected response:
 
 ```json
 {"status":"ok","service":"tenderpilot-api"}
+```
+
+Database status check:
+
+```bash
+curl http://127.0.0.1:3000/api/database/status
+```
+
+Persisted tenders:
+
+```bash
+curl http://127.0.0.1:3000/api/database/tenders
+```
+
+Seed demo data into PostgreSQL after migrations:
+
+```bash
+curl -X POST http://127.0.0.1:3000/api/database/seed-demo
 ```
 
 ## Validation Commands
