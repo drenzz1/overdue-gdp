@@ -1,0 +1,18 @@
+{
+  "name": "tenderpilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TenderPilot hackathon MVP prototype for tender analysis and bid drafting.",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "procurement",
+    "tenders",
+    "bid-writing",
+    "kosovo",
+    "hackathon"
+  ],
+  "license": "UNLICENSED"
+}

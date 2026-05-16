@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TenderPilot</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">TP</div>
+          <div>
+            <strong>TenderPilot</strong>
+            <span>Bid copilot</span>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Workspace">
+          <button class="nav-item active" data-view="intake" type="button">
+            <span aria-hidden="true">+</span>
+            Intake
+          </button>
+          <button class="nav-item" data-view="analysis" type="button">
+            <span aria-hidden="true">#</span>
+            Analysis
+          </button>
+          <button class="nav-item" data-view="checklist" type="button">
+            <span aria-hidden="true">OK</span>
+            Checklist
+          </button>
+          <button class="nav-item" data-view="drafts" type="button">
+            <span aria-hidden="true">T</span>
+            Drafts
+          </button>
+        </nav>
+
+        <div class="profile-panel">
+          <label for="companyProfile">Company profile</label>
+          <textarea id="companyProfile" rows="8">Prishtina-based software company with 18 engineers, ISO-aligned delivery process, public sector integrations, cloud deployments, Albanian and English documentation capacity.</textarea>
+          <button class="secondary-action" id="refreshDrafts" type="button">Refresh drafts</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Kosovo and Balkan public procurement</p>
+            <h1>Turn a tender into a compliant bid workspace.</h1>
+          </div>
+          <div class="topbar-actions">
+            <button class="secondary-action" id="loadSample" type="button">Load sample</button>
+            <button class="primary-action" id="exportDoc" type="button">Export bid</button>
+          </div>
+        </header>
+
+        <section class="metrics" aria-label="Tender status">
+          <article>
+            <span>Estimated score</span>
+            <strong id="scoreValue">73</strong>
+          </article>
+          <article>
+            <span>Deadline risk</span>
+            <strong id="riskValue">Medium</strong>
+          </article>
+          <article>
+            <span>Missing docs</span>
+            <strong id="missingValue">4</strong>
+          </article>
+          <article>
+            <span>Bid sections</span>
+            <strong id="sectionsValue">3</strong>
+          </article>
+        </section>
+
+        <section class="view active" id="view-intake">
+          <div class="dropzone" id="dropzone">
+            <input id="fileInput" type="file" accept=".pdf,.txt,.md,.doc,.docx">
+            <div class="document-visual" aria-hidden="true">
+              <div class="doc-page">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="scan-line"></div>
+            </div>
+            <div>
+              <h2>Upload tender document</h2>
+              <p id="fileStatus">Drop a PDF here or choose a file to create an analysis workspace.</p>
+              <button class="primary-action" type="button" id="chooseFile">Choose file</button>
+            </div>
+          </div>
+
+          <div class="intake-grid">
+            <article class="panel">
+              <div class="panel-heading">
+                <h3>Tender snapshot</h3>
+                <span id="sourceBadge">Demo data</span>
+              </div>
+              <dl class="snapshot" id="snapshotList"></dl>
+            </article>
+            <article class="panel">
+              <div class="panel-heading">
+                <h3>Extraction queue</h3>
+                <span>Ready</span>
+              </div>
+              <ul class="queue-list">
+                <li><span></span> Eligibility criteria</li>
+                <li><span></span> Deadlines and submission channel</li>
+                <li><span></span> Required documents</li>
+                <li><span></span> Scoring weights</li>
+                <li><span></span> Draftable response sections</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-analysis">
+          <div class="analysis-layout">
+            <article class="panel">
+              <div class="panel-heading">
+                <h3>Eligibility</h3>
+                <span id="eligibilityStatus">Needs review</span>
+              </div>
+              <ul class="criteria-list" id="criteriaList"></ul>
+            </article>
+            <article class="panel">
+              <div class="panel-heading">
+                <h3>Scoring weights</h3>
+                <span>100 pts</span>
+              </div>
+              <div class="weights" id="weightsList"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-checklist">
+          <div class="panel">
+            <div class="panel-heading">
+              <h3>Compliance checklist</h3>
+              <span id="checklistStatus">0 complete</span>
+            </div>
+            <div class="checklist" id="checklist"></div>
+          </div>
+        </section>
+
+        <section class="view" id="view-drafts">
+          <div class="draft-toolbar">
+            <button class="secondary-action active" data-draft="summary" type="button">Executive summary</button>
+            <button class="secondary-action" data-draft="technical" type="button">Technical approach</button>
+            <button class="secondary-action" data-draft="team" type="button">Team qualifications</button>
+          </div>
+          <article class="panel draft-panel">
+            <div class="panel-heading">
+              <h3 id="draftTitle">Executive summary</h3>
+              <span>Editable</span>
+            </div>
+            <textarea id="draftEditor" rows="18"></textarea>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
