@@ -1,3 +1,6 @@
+import mammoth from "mammoth";
+import { geminiFlashText, hasGemini } from "./geminiService.js";
+
 export type DocumentAnalysisResult = {
   extractedText: string;
   metadata: {
@@ -20,4 +23,41 @@ class TextExtractionProvider implements DocumentAnalysisProvider {
   }
 }
 
-export const defaultDocumentAnalysisProvider: DocumentAnalysisProvider = new TextExtractionProvider();
+function isDocx(mimeType: string): boolean {
+  return (
+    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    mimeType === "application/msword"
+  );
+}
+
+class GeminiDocumentAnalysisProvider implements DocumentAnalysisProvider {
+  async analyzeDocument(buffer: Buffer, _fileName: string, mimeType: string): Promise<DocumentAnalysisResult> {
+    if (isDocx(mimeType)) {
+      const result = await mammoth.extractRawText({ buffer });
+      return {
+        extractedText: result.value,
+        metadata: { provider: "gemini-mammoth" }
+      };
+    }
+
+    // PDF — send inline to Gemini for text extraction
+    const result = await geminiFlashText.generateContent([
+      {
+        inlineData: {
+          data: buffer.toString("base64"),
+          mimeType: "application/pdf"
+        }
+      },
+      "Extract all text from this tender document. Return only the raw extracted text, preserving structure with newlines. Do not summarize or interpret — just extract."
+    ]);
+
+    return {
+      extractedText: result.response.text(),
+      metadata: { provider: "gemini-pdf" }
+    };
+  }
+}
+
+export const defaultDocumentAnalysisProvider: DocumentAnalysisProvider = hasGemini
+  ? new GeminiDocumentAnalysisProvider()
+  : new TextExtractionProvider();

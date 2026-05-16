@@ -67,6 +67,19 @@ export type GapAnalysisSummary = {
   }>;
 };
 
+export type SimplifiedSummary = {
+  whatYouNeedToWin: string[];
+  winningFactors: string[];
+  topRisks: string[];
+};
+
+export type GeneratedDocument = {
+  id: string;
+  documentName: string;
+  content: string;
+  generatedAt: string;
+};
+
 export type AnalysisResult = {
   tender: TenderProfile;
   source: string;
@@ -78,7 +91,7 @@ export type AnalysisResult = {
   gapAnalysis: GapAnalysisItem[];
   gapSummary: GapAnalysisSummary;
   reviewItems: string[];
-  persistedTenderId?: string;
+  simplifiedSummary?: SimplifiedSummary;
 };
 
 export type AnalyzeTenderInput = {
@@ -106,19 +119,3 @@ export type CompanyProfile = {
   documents: CompanyDocument[];
 };
 
-export type DatabaseStatus = {
-  configured: boolean;
-  connected: boolean;
-  message: string;
-};
-
-export type TenderDashboardItem = {
-  id: string;
-  title: string;
-  buyer: string;
-  status: string;
-  deadline: string | null;
-  score: number | null;
-  missingDocuments: number;
-  createdAt: string;
-};

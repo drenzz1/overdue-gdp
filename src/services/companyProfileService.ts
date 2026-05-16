@@ -1,4 +1,8 @@
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 import type { CompanyDocument, CompanyProfile } from "../types.js";
+
+const PROFILE_PATH = join(process.cwd(), "src", "data", "company-profile.json");
 
 const defaultProfile: CompanyProfile = {
   name: "Demo Company",
@@ -36,7 +40,27 @@ const defaultProfile: CompanyProfile = {
   ]
 };
 
-let currentProfile: CompanyProfile = cloneProfile(defaultProfile);
+function loadProfile(): CompanyProfile {
+  try {
+    if (existsSync(PROFILE_PATH)) {
+      const raw = readFileSync(PROFILE_PATH, "utf8");
+      return JSON.parse(raw) as CompanyProfile;
+    }
+  } catch {
+    // fall through to default
+  }
+  return defaultProfile;
+}
+
+function saveProfile(profile: CompanyProfile): void {
+  try {
+    writeFileSync(PROFILE_PATH, JSON.stringify(profile, null, 2), "utf8");
+  } catch {
+    // non-fatal — profile will still work in-memory
+  }
+}
+
+let currentProfile: CompanyProfile = cloneProfile(loadProfile());
 
 function cloneProfile(profile: CompanyProfile): CompanyProfile {
   return {
@@ -52,10 +76,12 @@ export function getProfile(): CompanyProfile {
 
 export function setProfile(profile: CompanyProfile): void {
   currentProfile = cloneProfile(profile);
+  saveProfile(currentProfile);
 }
 
 export function addDocument(doc: CompanyDocument): void {
   currentProfile.documents.push({ ...doc, tags: [...doc.tags] });
+  saveProfile(currentProfile);
 }
 
 export type ProfileContext = {

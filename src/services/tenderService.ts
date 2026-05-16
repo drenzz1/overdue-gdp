@@ -1,6 +1,7 @@
 import { sampleTender } from "../data/sampleTender.js";
 import { retrieveContext } from "./companyProfileService.js";
 import { extractTenderRequirements } from "./extractionService.js";
+import { geminiFlashText, hasGemini } from "./geminiService.js";
 import { buildGapAnalysis, buildGapSummary, missingTenderDocuments } from "./gapAnalysisService.js";
 import { buildScoreExplanation, buildScoreFactors, computeScore } from "./scoringService.js";
 import type { AnalysisResult, AnalyzeTenderInput, CompanyProfile, DraftType, TenderDocument, TenderProfile } from "../types.js";
@@ -9,14 +10,9 @@ function cloneTender(tender: TenderProfile): TenderProfile {
   return {
     ...tender,
     criteria: [...tender.criteria],
-    weights: tender.weights.map((weight) => ({ ...weight })),
-    documents: tender.documents.map((document) => ({ ...document }))
+    weights: tender.weights.map((w) => ({ ...w })),
+    documents: tender.documents.map((d) => ({ ...d }))
   };
-}
-
-function titleFromFileName(fileName: string | undefined) {
-  if (!fileName) return "Uploaded tender";
-  return fileName.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || "Uploaded tender";
 }
 
 function formatSource(fileName: string | undefined, fileSize: number | undefined) {
@@ -29,23 +25,28 @@ export function getSampleAnalysis(): AnalysisResult {
   return buildAnalysisResult(cloneTender(sampleTender), "Demo data");
 }
 
-export function analyzeTender(input: AnalyzeTenderInput, profile?: CompanyProfile): AnalysisResult {
+export async function analyzeTender(input: AnalyzeTenderInput, profile?: CompanyProfile): Promise<AnalysisResult> {
   if (!input.fileName) {
     return getSampleAnalysis();
   }
 
-  const extraction = extractTenderRequirements(input, profile);
-  return buildAnalysisResult(extraction.tender, formatSource(input.fileName, input.fileSize), extraction.reviewItems);
-}
+  const extraction = await extractTenderRequirements(input, profile);
+  const result = buildAnalysisResult(
+    extraction.tender,
+    formatSource(input.fileName, input.fileSize),
+    extraction.reviewItems
+  );
 
-export function scoreTender(tender: TenderProfile): number {
-  return computeScore(buildScoreFactors(tender));
+  if (extraction.simplifiedSummary) {
+    result.simplifiedSummary = extraction.simplifiedSummary;
+  }
+
+  return result;
 }
 
 export function deadlineRisk(deadline: string): AnalysisResult["deadlineRisk"] {
   const date = new Date(deadline.replace(" CET", "+01:00"));
   if (Number.isNaN(date.getTime())) return "Medium";
-
   const days = Math.ceil((date.getTime() - Date.now()) / 86400000);
   if (days <= 7) return "High";
   if (days <= 21) return "Medium";
@@ -56,25 +57,92 @@ export function missingDocuments(tender: TenderProfile): TenderDocument[] {
   return missingTenderDocuments(tender);
 }
 
-export function buildDraft(type: DraftType, tender: TenderProfile, profile?: CompanyProfile | string) {
-  const missing = missingDocuments(tender).map((document) => document.name);
+export async function buildDraft(type: DraftType, tender: TenderProfile, profile?: CompanyProfile): Promise<string> {
+  if (hasGemini && profile) {
+    try {
+      return await buildDraftWithGemini(type, tender, profile);
+    } catch {
+      // fall through to template fallback
+    }
+  }
+  return buildDraftTemplate(type, tender, profile);
+}
+
+async function buildDraftWithGemini(type: DraftType, tender: TenderProfile, profile: CompanyProfile): Promise<string> {
+  const { matchedDocuments, relevantCapabilities } = retrieveContext([tender.title, ...tender.criteria].join(" "));
+  const evidenceLines = [
+    ...matchedDocuments.map((d) => `- ${d.name}: ${d.description}`),
+    ...relevantCapabilities.map((c) => `- Capability: ${c}`)
+  ].join("\n");
+
+  const missing = missingDocuments(tender).map((d) => d.name).join(", ") || "none";
+
+  const sectionDescriptions: Record<DraftType, { name: string; length: string; instructions: string }> = {
+    summary: {
+      name: "Executive Summary",
+      length: "200–250 words",
+      instructions: "Write a compelling executive summary positioning the company as the ideal partner. Highlight alignment with tender requirements, key strengths, and commitment to delivery. End with a clear statement of why this company should be chosen."
+    },
+    technical: {
+      name: "Technical Approach",
+      length: "350–450 words",
+      instructions: "Write a structured technical approach with three clear sections: (1) Discovery & Compliance Mapping, (2) Implementation Plan, (3) Support & Maintenance. Reference specific tender criteria and scoring weights. Show methodology alignment."
+    },
+    team: {
+      name: "Team Qualifications",
+      length: "250–300 words",
+      instructions: "Describe the proposed delivery team. Include roles: Project Manager, Solution Architect, QA Lead. Describe each role's accountability and relevant experience. Reference comparable projects where possible."
+    }
+  };
+
+  const section = sectionDescriptions[type];
+
+  const prompt = `You are a professional bid writer with expertise in public procurement in Kosovo and the Balkans.
+
+Write the "${section.name}" section of a tender bid response.
+Target length: ${section.length}.
+Instructions: ${section.instructions}
+
+Company: ${profile.name}
+Company description: ${profile.description}
+Capabilities: ${profile.capabilities.join(", ")}
+
+Company evidence matched to this tender:
+${evidenceLines || "No specific evidence matched — write based on company description."}
+
+Tender: ${tender.title}
+Buyer: ${tender.buyer} (${tender.region})
+Value: ${tender.value}
+Deadline: ${tender.deadline}
+Language: ${tender.language}
+Scoring weights: ${tender.weights.map((w) => `${w.label} (${w.value}%)`).join(", ")}
+
+Key criteria:
+${tender.criteria.map((c) => `- ${c}`).join("\n")}
+
+Documents still missing: ${missing}
+
+Write professional, specific prose. Do not use placeholder text or generic statements. Be concrete about what this company will deliver.`;
+
+  const result = await geminiFlashText.generateContent(prompt);
+  return result.response.text().trim();
+}
+
+function buildDraftTemplate(type: DraftType, tender: TenderProfile, profile?: CompanyProfile): string {
+  const missing = missingDocuments(tender).map((d) => d.name);
   const missingText = missing.length ? missing.join(", ") : "no missing documents";
 
-  let profileDescription: string;
+  let profileDescription = "Regional delivery team with relevant implementation experience.";
   let evidenceBlock = "";
 
-  if (typeof profile === "object" && profile !== null) {
-    profileDescription = profile.description.trim() || "Regional delivery team with relevant implementation experience.";
-    const tenderContext = [tender.title, ...tender.criteria].join(" ");
-    const { matchedDocuments, relevantCapabilities } = retrieveContext(tenderContext);
-    const lines: string[] = [];
-    for (const doc of matchedDocuments) lines.push(`- ${doc.name}: ${doc.description}`);
-    for (const cap of relevantCapabilities) lines.push(`- Capability on file: ${cap}`);
+  if (profile) {
+    profileDescription = profile.description.trim() || profileDescription;
+    const { matchedDocuments, relevantCapabilities } = retrieveContext([tender.title, ...tender.criteria].join(" "));
+    const lines = [
+      ...matchedDocuments.map((d) => `- ${d.name}: ${d.description}`),
+      ...relevantCapabilities.map((c) => `- Capability on file: ${c}`)
+    ];
     if (lines.length) evidenceBlock = `\n\nRelevant company evidence:\n${lines.join("\n")}`;
-  } else {
-    profileDescription =
-      (typeof profile === "string" ? profile.trim() : "") ||
-      "Regional delivery team with relevant implementation experience.";
   }
 
   const drafts: Record<DraftType, string> = {
