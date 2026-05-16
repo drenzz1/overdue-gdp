@@ -37,6 +37,7 @@ export default function StepDocuments({ tender, apiBase }: Props) {
   const [generatedDocs, setGeneratedDocs] = useState<Map<string, GeneratedDoc>>(new Map());
   const [generating, setGenerating] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
+  const [errors, setErrors] = useState<Map<string, string>>(new Map());
 
   // Also include bid draft sections as virtual documents
   const allDocuments = [
@@ -48,15 +49,21 @@ export default function StepDocuments({ tender, apiBase }: Props) {
 
   async function generate(docName: string) {
     setGenerating((prev) => new Set(prev).add(docName));
+    setErrors((prev) => { const next = new Map(prev); next.delete(docName); return next; });
     try {
       const res = await fetch(`${apiBase}/api/documents/generate`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ documentName: docName, tender })
       });
-      if (!res.ok) return;
-      const data = (await res.json()) as GeneratedDoc;
+      const data = (await res.json()) as GeneratedDoc & { error?: string };
+      if (!res.ok) {
+        setErrors((prev) => new Map(prev).set(docName, data.error ?? "Generation failed. Please try again."));
+        return;
+      }
       setGeneratedDocs((prev) => new Map(prev).set(docName, data));
+    } catch {
+      setErrors((prev) => new Map(prev).set(docName, "Could not reach the server. Please try again."));
     } finally {
       setGenerating((prev) => {
         const next = new Set(prev);
@@ -117,6 +124,7 @@ export default function StepDocuments({ tender, apiBase }: Props) {
           const isGenerating = generating.has(doc.name);
           const isDownloading = downloading.has(doc.name);
           const genDoc = generatedDocs.get(doc.name);
+          const genError = errors.get(doc.name);
 
           return (
             <article className="doc-card" key={doc.name}>
@@ -132,6 +140,10 @@ export default function StepDocuments({ tender, apiBase }: Props) {
 
               {doc.evidence && (
                 <small className="muted">Evidence: {doc.evidence}</small>
+              )}
+
+              {genError && (
+                <p style={{ color: "red", fontSize: "0.85rem", margin: "0.25rem 0" }}>{genError}</p>
               )}
 
               {!genDoc && (

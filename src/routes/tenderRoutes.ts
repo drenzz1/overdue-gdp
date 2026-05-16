@@ -83,9 +83,17 @@ export async function registerTenderRoutes(app: FastifyInstance) {
     }
 
     const tender = request.body?.tender ?? getSampleAnalysis().tender;
-    return {
-      type,
-      draft: await buildDraft(type, tender, getProfile())
-    };
+    try {
+      return {
+        type,
+        draft: await buildDraft(type, tender, getProfile())
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      const isRateLimit = msg.includes("429") || msg.includes("Too Many Requests") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("rate limit");
+      return reply
+        .code(isRateLimit ? 429 : 500)
+        .send({ error: isRateLimit ? "AI service is rate limited — please wait a moment and try again." : msg });
+    }
   });
 }

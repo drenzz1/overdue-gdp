@@ -1,92 +1,81 @@
-import { GoogleGenAI } from "@google/genai";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
-const project = process.env.GOOGLE_CLOUD_PROJECT;
-const location = process.env.GOOGLE_CLOUD_LOCATION ?? "us-central1";
-const vertexModel = process.env.VERTEX_MODEL ?? "gemini-2.5-flash";
-const apiKey = process.env.GEMINI_API_KEY ?? "";
+const apiKey = process.env.OPENAI_API_KEY;
+const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-export const hasGemini = Boolean(project) || apiKey.length > 0;
+export const hasGemini = Boolean(apiKey);
 
-// Vertex AI client (preferred when GOOGLE_CLOUD_PROJECT is set)
-let vertexClient: GoogleGenAI | null = null;
+let client: OpenAI | null = null;
 
-function getVertexClient(): GoogleGenAI {
-  if (!vertexClient) {
-    vertexClient = new GoogleGenAI({ vertexai: true, project: project!, location });
+function getClient(): OpenAI {
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not set");
   }
-  return vertexClient;
+  if (!client) {
+    client = new OpenAI({ apiKey });
+  }
+  return client;
 }
 
 export async function generateText(prompt: string, systemInstruction?: string): Promise<string> {
-  if (project) {
-    const ai = getVertexClient();
-    const result = await ai.models.generateContent({
-      model: vertexModel,
-      contents: prompt,
-      config: {
-        maxOutputTokens: 2048,
-        temperature: 0.4,
-        ...(systemInstruction ? { systemInstruction } : {})
+  const openai = getClient();
+  const maxRetries = 3;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await openai.chat.completions.create({
+        model,
+        messages: [
+          ...(systemInstruction ? [{ role: "system" as const, content: systemInstruction }] : []),
+          { role: "user" as const, content: prompt }
+        ],
+        max_tokens: 1024,
+        temperature: 0.4
+      });
+      return response.choices[0]?.message?.content?.trim() ?? "";
+    } catch (err: unknown) {
+      const isRateLimit =
+        err instanceof Error &&
+        (err.message.includes("429") || err.message.includes("rate limit") || err.message.includes("Rate limit"));
+
+      if (isRateLimit && attempt < maxRetries - 1) {
+        const delay = 2000 * Math.pow(2, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
       }
-    });
-    return String(result.text ?? "").trim();
+
+      throw err;
+    }
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  const result = await model.generateContent(
-    systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt
-  );
-  return result.response.text().trim();
+  throw new Error("OpenAI request failed after retries");
 }
 
 export async function generateJson(prompt: string): Promise<string> {
-  if (project) {
-    const ai = getVertexClient();
-    const result = await ai.models.generateContent({
-      model: vertexModel,
-      contents: prompt,
-      config: { maxOutputTokens: 4096, temperature: 0.2, responseMimeType: "application/json" }
-    });
-    return String(result.text ?? "").trim();
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash",
-    generationConfig: { responseMimeType: "application/json" }
+  const openai = getClient();
+  const response = await openai.chat.completions.create({
+    model,
+    messages: [
+      { role: "system" as const, content: "Respond with valid JSON only." },
+      { role: "user" as const, content: prompt }
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 4096,
+    temperature: 0.2
   });
-  const result = await model.generateContent(prompt);
-  return result.response.text().trim();
+  return response.choices[0]?.message?.content?.trim() ?? "{}";
 }
 
-export async function generateTextFromPdf(pdfBase64: string, prompt: string): Promise<string> {
-  if (project) {
-    const ai = getVertexClient();
-    const result = await ai.models.generateContent({
-      model: vertexModel,
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { inlineData: { data: pdfBase64, mimeType: "application/pdf" } },
-            { text: prompt }
-          ]
-        }
-      ],
-      config: { maxOutputTokens: 4096, temperature: 0.2 }
-    });
-    return String(result.text ?? "").trim();
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-  const result = await model.generateContent([
-    { inlineData: { data: pdfBase64, mimeType: "application/pdf" } },
-    prompt
-  ]);
-  return result.response.text().trim();
+export async function generateTextFromPdf(_pdfBase64: string, prompt: string): Promise<string> {
+  // OpenAI does not support inline PDF base64; analyze using the prompt context only
+  const openai = getClient();
+  const response = await openai.chat.completions.create({
+    model,
+    messages: [{ role: "user" as const, content: prompt }],
+    max_tokens: 4096,
+    temperature: 0.2
+  });
+  return response.choices[0]?.message?.content?.trim() ?? "";
 }
 
 export function extractJsonFromResponse(text: string): string {
